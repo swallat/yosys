@@ -16,8 +16,9 @@
 #   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #  
 #  
-#   ToDo: implement and test verific and emscripten support
-#   ToDo: Fix tests to support out of source builds and unit-tests
+#   ToDo: verific
+#   ToDo: documentation
+#   ToDo: tests + unit_tests
 
 cmake_minimum_required(VERSION 3.9)
 
@@ -27,7 +28,6 @@ option(BUILD_MYSYS "BUILD_MYSYS" OFF)
 option(BUILD_CLANG "BUILD_CLANG" OFF)
 option(BUILD_GCC "BUILD_GCC" OFF)
 option(BUILD_GCC-4.8 "BUILD_GCC-4.8" OFF)
-option(BUILD_EMSCRIPTEN "BUILD_EMSCRIPTEN" OFF)
 
 #Set compiler
 if(BUILD_MINGW)
@@ -83,6 +83,13 @@ option(LINK_TERMCAP "LINK_TERMCAP" OFF)
 option(SMALL "SMALL" OFF)
 option(ENABLE_TESTS "ENABLE_TESTS" ON)
 
+if(EMSCRIPTEN)
+    set(ENABLE_TCL OFF)
+    set(ENABLE_ABC OFF)
+    set(ENABLE_PLUGINS OFF)
+    set(ENABLE_READLINE OFF)
+endif(EMSCRIPTEN)
+
 # clang sanitizers
 option(ENABLE_ADDERSS_SANITIZER "ENABLE_ADDERSS_SANITIZER" OFF)
 option(ENABLE_MEMORY_SANITIZER "ENABLE_MEMORY_SANITIZER" OFF)
@@ -137,7 +144,10 @@ if(APPLE)
 endif(APPLE)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -ggdb")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    if(NOT EMSCRIPTEN)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -ggdb")
+    endif(NOT EMSCRIPTEN)
 elseif(MINGW)
     set(ENV{PKG_CONFIG} /usr/local/src/mxe/usr/bin/i686-w64-mingw32.static-pkg-config)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_POSIX_SOURCE -DYOSYS_MXE_HACKS -Wno-attributes -ggdb")
@@ -149,10 +159,16 @@ elseif(MYSYS)
     set(ABCMKARGS "${ABCMKARGS} LIBS=\"lib/x86/pthreadVC2.lib -s\" ABC_USE_NO_READLINE=0")
 endif()
 
+if(EMSCRIPTEN)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-warn-absolute-paths --memory-init-file 0 --embed-file share -s NO_EXIT_RUNTIME=1 -s TOTAL_MEMORY=128*1024*1024")
+endif()
+
 find_package(PkgConfig REQUIRED)
 find_package(Bison REQUIRED)
 find_package(Flex REQUIRED)
-find_package(Gettext REQUIRED)
+if(NOT EMSCRIPTEN)
+    find_package(Gettext REQUIRED)
+endif(NOT EMSCRIPTEN)
 set(Python_ADDITIONAL_VERSIONS 3.5 3.6)
 find_package(PythonInterp 3.6 REQUIRED)
 if(ENABLE_PLUGINS)
@@ -176,11 +192,11 @@ find_package(Sanitizers)
 
 set(YOSYS_SRC ${CMAKE_CURRENT_BINARY_DIR})
 set(DATDIR ${CMAKE_INSTALL_DATADIR})
-execute_process(COMMAND test -e .git COMMAND git log --author=clifford@clifford.at --oneline 61f6811.. COMMAND wc -l OUTPUT_VARIABLE YOSYS_VER_TMP)
+execute_process(COMMAND test -e .git COMMAND git log --author=clifford@clifford.at --oneline 61f6811.. COMMAND wc -l OUTPUT_VARIABLE YOSYS_VER_TMP WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 string(STRIP ${YOSYS_VER_TMP} YOSYS_VER_TMP)
 set(YOSYS_VER 0.7+${YOSYS_VER_TMP})
 
-execute_process(COMMAND git rev-parse --short HEAD OUTPUT_VARIABLE GIT_REV)
+execute_process(COMMAND git rev-parse --short HEAD OUTPUT_VARIABLE GIT_REV WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 string(STRIP ${GIT_REV} GIT_REV)
 if(GIT_REV STREQUAL "")
     set(GIT_REV "UNKNOWN")

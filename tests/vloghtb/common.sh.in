@@ -21,7 +21,7 @@ test_autotest()
 	mkdir -p log_test_$test_name
 	rm -rf log_test_$test_name/$mod_name.*
 
-	../../yosys -q -l log_test_$test_name/$mod_name.out -o log_test_$test_name/$mod_name.v -p "$synth_cmd" "$vlog_file"
+	@YOSYS_EXECUTABLE@ -q -l log_test_$test_name/$mod_name.out -o log_test_$test_name/$mod_name.v -p "$synth_cmd" "$vlog_file"
 	cat spec/${mod_name}_spec.v scripts/check.v >> log_test_$test_name/$mod_name.v
 	iverilog -o log_test_$test_name/$mod_name.bin -D"REFDAT_FN=\"refdat/${mod_name}_refdat.txt\"" log_test_$test_name/$mod_name.v
 
@@ -44,7 +44,7 @@ test_equiv()
 	rm -f log_test_$1/$4.txt
 	rm -f log_test_$1/$4.err
 
-	if ! ../../yosys -q -l log_test_$1/$4.out - 2> /dev/null <<- EOT
+	if ! @YOSYS_EXECUTABLE@ -q -l log_test_$1/$4.out - 2> /dev/null <<- EOT
 		read_verilog $5
 		proc;;
 
@@ -79,7 +79,7 @@ test_febe()
 	rm -f log_test_$1/$7.txt
 	rm -f log_test_$1/$7.err
 
-	if ! ../../yosys -q -l log_test_$1/$7.out - 2> /dev/null <<- EOT
+	if ! @YOSYS_EXECUTABLE@ -q -l log_test_$1/$7.out - 2> /dev/null <<- EOT
 		echo on
 		read_verilog $8
 		$2

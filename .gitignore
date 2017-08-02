@@ -32,3 +32,4 @@ cmake-build-debug
 /libyosys.so
 /tests/unit/bintest/
 /tests/unit/objtest/
+/tests/sat/run-test.sh

@@ -1,5 +1,5 @@
 
-EXTRA_FLAGS=
+EXTRA_FLAG§S=
 SEED=
 
 ifneq ($(strip $(SEED)),)

@@ -60,11 +60,11 @@ generate_sby() {
 if [ -f $prefix.sv ]; then
 	generate_sby pass > ${prefix}_pass.sby
 	generate_sby fail > ${prefix}_fail.sby
-	sby --yosys $PWD/../../yosys -f ${prefix}_pass.sby
-	sby --yosys $PWD/../../yosys -f ${prefix}_fail.sby
+	sby --yosys @YOSYS_EXECUTABLE@ -f ${prefix}_pass.sby
+	sby --yosys @YOSYS_EXECUTABLE@ -f ${prefix}_fail.sby
 else
 	generate_sby pass > ${prefix}.sby
-	sby --yosys $PWD/../../yosys -f ${prefix}.sby
+	sby --yosys @YOSYS_EXECUTABLE@ -f ${prefix}.sby
 fi
 
 touch $prefix.ok

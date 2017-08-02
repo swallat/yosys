@@ -15,7 +15,6 @@
 #   ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 #   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
-#   ToDo: tests + unit_tests
 
 cmake_minimum_required(VERSION 3.9)
 
@@ -243,7 +242,7 @@ if(ENABLE_ABC)
                             INSTALL_COMMAND cmake -E echo "Skipping install step."
                             )
         externalproject_get_property(abc install_dir)
-        add_custom_target(yosys-abc
+        add_custom_target(yosys-abc ALL
                           BYPRODUCTS yosys-abc${CMAKE_EXECUTABLE_SUFFIX}
                           COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/abc/abc${CMAKE_EXECUTABLE_SUFFIX} ${CMAKE_CURRENT_BINARY_DIR}/yosys-abc${CMAKE_EXECUTABLE_SUFFIX}
                           COMMENT "Copy abc executable to yosis-abc${CMAKE_EXECUTABLE_SUFFIX}"
@@ -313,11 +312,11 @@ if(ENABLE_COVER)
     add_definitions(-DYOSYS_ENABLE_COVER)
 endif(ENABLE_COVER)
 
-if(NOT SEED)
+if(SEED)
     set(SEEDOPT "-S ${SEED}")
 else()
     set(SEEDOPT "")
-endif(NOT SEED)
+endif(SEED)
 
 add_definitions(-D_YOSYS_ -DYOSYS_SRC="${YOSYS_SRC}" -DYOSYS_DATADIR="${DATDIR}")
 
@@ -410,13 +409,99 @@ install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/share DESTINATION ${CMAKE_INSTALL_
 configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
         "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
-        IMMEDIATE @ONLY)
+        @ONLY)
 
 add_custom_target(uninstall
                   COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
 if(ENABLE_TESTS)
     enable_testing()
+    set(YOSYS_EXECUTABLE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}")
+
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/bram/run-single.sh.in"
+            "${CMAKE_CURRENT_BINARY_DIR}/tests/bram/run-single.sh"
+            @ONLY
+    )
+
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/fsm/run-test.sh.in"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/fsm/run-test.sh"
+            @ONLY
+    )
+
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/memories/run-test.sh.in"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/memories/run-test.sh"
+            @ONLY
+    )
+
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/realmath/run-test.sh.in"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/realmath/run-test.sh"
+            @ONLY
+    )
+
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/sat/run-test.sh.in"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/sat/run-test.sh"
+            @ONLY
+    )
+
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/share/run-test.sh.in"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/share/run-test.sh"
+            @ONLY
+    )
+
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/smv/run-single.sh.in"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/smv/run-single.sh"
+            @ONLY
+    )
+
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/smv/run-test.sh.in"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/smv/run-test.sh"
+            @ONLY
+    )
+
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/sva/runtest.sh.in"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/sva/runtest.sh"
+            @ONLY
+    )
+
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/techmap/mem_simple_4x1_runtest.sh.in"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/techmap/mem_simple_4x1_runtest.sh"
+            @ONLY
+    )
+
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/tools/autotest.sh.in"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/tools/autotest.sh"
+            @ONLY
+    )
+
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/various/run-test.sh.in"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/various/run-test.sh"
+            @ONLY
+    )
+
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/vloghtb/common.sh.in"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/vloghtb/common.sh"
+            @ONLY
+    )
+
+    configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/vloghtb/run-test.sh.in"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/vloghtb/run-test.sh"
+            @ONLY
+    )
+
     add_test(NAME test/simple
              COMMAND run-test.sh ${SEEDOPT}
              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/simple)
@@ -427,7 +512,7 @@ if(ENABLE_TESTS)
 
     add_test(NAME test/asciworld
              COMMAND run-test.sh ${SEEDOPT}
-             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/asciworld)
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/asicworld)
 
     add_test(NAME test/realmath
              COMMAND run-test.sh ${SEEDOPT}
@@ -471,6 +556,10 @@ if(ENABLE_TESTS)
                           COMMAND ${valgrind_exec} ${CMAKE_CURRENT_BINARY_DIR}/yosys -p 'setattr -mod -unset top\; synth' $\(ls tests/simple/*.v | grep -v repwhile.v\)
                           COMMENT "Run valgrind tests")
     endif(valgrind_exec_FOUND)
+
+    # Unit Tests
+    find_package(GTest REQUIRED)
+    include(tests/unit/CMakeLists.txt)
 endif(ENABLE_TESTS)
 
 add_custom_target(update-manual

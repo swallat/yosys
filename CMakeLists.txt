@@ -14,9 +14,7 @@
 #   WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 #   ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 #   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-#  
-#  
-#   ToDo: verific
+#
 #   ToDo: tests + unit_tests
 
 cmake_minimum_required(VERSION 3.9)
@@ -161,6 +159,17 @@ endif()
 if(EMSCRIPTEN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-warn-absolute-paths --memory-init-file 0 --embed-file share -s NO_EXIT_RUNTIME=1 -s TOTAL_MEMORY=128*1024*1024")
 endif()
+
+if(ENABLE_VERIFIC)
+    if(NOT VERIFIC_DIR)
+        set(VERIFIC_DIR "/usr/local/src/verific_lib_eval")
+    endif(NOT VERIFIC_DIR)
+    if(NOT VERIFIC_COMPONENTS)
+        set(VERIFIC_COMPONENTS verilog vhdl database util containers sdf)
+    endif(NOT VERIFIC_COMPONENTS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${VERIFIC_DIR}/,${VERIFIC_COMPONENTS} -DYOSYS_ENABLE_VERIFIC")
+    #LDLIBS += $(patsubst %,$(VERIFIC_DIR)/%/*-linux.a,$(VERIFIC_COMPONENTS))
+endif(ENABLE_VERIFIC)
 
 find_package(PkgConfig REQUIRED)
 find_package(Bison REQUIRED)

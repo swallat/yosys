@@ -17,7 +17,6 @@
 #  
 #  
 #   ToDo: verific
-#   ToDo: documentation
 #   ToDo: tests + unit_tests
 
 cmake_minimum_required(VERSION 3.9)
@@ -464,3 +463,17 @@ if(ENABLE_TESTS)
                           COMMENT "Run valgrind tests")
     endif(valgrind_exec_FOUND)
 endif(ENABLE_TESTS)
+
+add_custom_target(update-manual
+                  COMMAND ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME} -p 'help -write-tex-command-reference-manual'
+                  DEPENDS ${PROJECT_NAME}
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/manual/
+                  COMMENT "Update Manual")
+
+add_custom_target(manual
+                  COMMAND ./appnotes.sh
+                  COMMAND ./presentation.sh
+                  COMMAND ./manual.sh
+                  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/manual/appnotes.sh ${CMAKE_CURRENT_SOURCE_DIR}/manual/presentation.sh ${CMAKE_CURRENT_SOURCE_DIR}/manual/manual.sh ${PROJECT_NAME}
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/manual/
+                  COMMENT "Build Manual")

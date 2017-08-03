@@ -222,7 +222,7 @@ if(ENABLE_ABC)
     # delete your work on ABC..
     set(ABCREV "efbf7f13ea9e")
     set(ABCPULL "1")
-    if(NOT ABCURL)§
+    if(NOT ABCURL)
         set(ABCURL "https://bitbucket.org/alanmi/abc")
     endif(NOT ABCURL)
     set(ABCMKARGS "${ABCMKARGS} CC=\"${CMAKE_CXX_COMPILER}\" CXX=\"${CMAKE_CXX_COMPILER}\"")

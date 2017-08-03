@@ -34,13 +34,14 @@ INSTALL_SUDO :=
 BINDIR := $(PREFIX)/bin
 LIBDIR := $(PREFIX)/lib
 DATDIR := $(PREFIX)/share/yosys
+PKGCONFIG_DIR := $(PREFIX)/share/pkgconfig
 
 EXE =
 OBJS =
 GENFILES =
 EXTRA_OBJS =
 EXTRA_TARGETS =
-TARGETS = yosys$(EXE) yosys-config
+TARGETS = yosys$(EXE) yosys-config yosys.pc
 
 PRETTY = 1
 SMALL = 0
@@ -410,6 +411,13 @@ yosys-config: misc/yosys-config.in
 			-e 's#@BINDIR@#$(BINDIR)#;' -e 's#@DATDIR@#$(DATDIR)#;' < $< > yosys-config
 	$(Q) chmod +x yosys-config
 
+yosys.pc: misc/yosys.pc.in
+	$(P) $(SED) -e 's#@YOSYS_INSTALL_PREFIX@#$(PREFIX)#;' \
+							-e 's#@YOSYS_BINARY_INSTALL_DIRECTORY@#$(BINDIR)#;' \
+							-e 's#@YOSYS_LIBRARY_INSTALL_DIRECTORY@#$(LIBDIR)#;' \
+							-e 's#@YOSYS_INCLUDE_INSTALL_DIRECTORY@#$(DATDIR)/include#;' \
+							-e 's#@VERSION@#$(YOSYS_VER)#;' < $< > yosys.pc
+
 abc/abc-$(ABCREV)$(EXE):
 	$(P)
 ifneq ($(ABCREV),default)
@@ -482,6 +490,7 @@ install: $(TARGETS) $(EXTRA_TARGETS)
 	$(INSTALL_SUDO) install $(TARGETS) $(DESTDIR)$(BINDIR)
 	$(INSTALL_SUDO) mkdir -p $(DESTDIR)$(DATDIR)
 	$(INSTALL_SUDO) cp -r share/. $(DESTDIR)$(DATDIR)/.
+	$(INSTALL_SUDO) cp yosys.pc $(DESTDIR)$(PKGCONFIG_DIR)
 ifeq ($(ENABLE_LIBYOSYS),1)
 	$(INSTALL_SUDO) cp libyosys.so $(DESTDIR)$(LIBDIR)
 	$(INSTALL_SUDO) ldconfig
@@ -490,6 +499,7 @@ endif
 uninstall:
 	$(INSTALL_SUDO) rm -vf $(addprefix $(DESTDIR)$(BINDIR)/,$(notdir $(TARGETS)))
 	$(INSTALL_SUDO) rm -rvf $(DESTDIR)$(DATDIR)
+	$(INSTALL_SUDO) rm -vf $(DESTDIR)$(PKGCONFIG_DIR)/yosys.pc
 ifeq ($(ENABLE_LIBYOSYS),1)
 	$(INSTALL_SUDO) rm -vf $(DESTDIR)$(LIBDIR)/libyosys.so
 endif

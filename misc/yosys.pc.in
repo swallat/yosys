@@ -1,0 +1,13 @@
+prefix=@YOSYS_INSTALL_PREFIX@
+exec_prefix=@YOSYS_BINARY_INSTALL_DIRECTORY@
+libdir=@YOSYS_LIBRARY_INSTALL_DIRECTORY@
+sharedlibdir=@YOSYS_LIBRARY_INSTALL_DIRECTORY@
+includedir=@YOSYS_INCLUDE_INSTALL_DIRECTORY@
+
+Name: yosys
+Description: yosys open synthesis suite
+Version: @VERSION@
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lz
+Cflags: -I${includedir}

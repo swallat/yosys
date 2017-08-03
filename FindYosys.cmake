@@ -1,5 +1,5 @@
 find_package(PkgConfig)
-pkg_check_modules(PC_LIBCGRAPH yosys)
+pkg_check_modules(PC_YOSYS yosys)
 
 # Include dir
 find_path(yosys_INCLUDE_DIR

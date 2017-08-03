@@ -53,14 +53,14 @@ prerequisites for building yosys:
 
 	$ sudo apt-get install build-essential clang bison flex \
 		libreadline-dev gawk tcl-dev libffi-dev git mercurial \
-		graphviz xdot pkg-config python3
+		graphviz xdot pkg-config python3 cmake
 
 Similarily, on Mac OS X MacPorts or Homebrew can be used to install dependencies:
 
 	$ brew install bison flex gawk libffi \
 		git mercurial graphviz pkg-config python3
 	$ sudo port install bison flex readline gawk libffi \
-		git mercurial graphviz pkgconfig python36
+		git mercurial graphviz pkgconfig python36 cmake
 
 There are also pre-compiled Yosys binary packages for Ubuntu and Win32 as well
 as a source distribution for Visual Studio. Visit the Yosys download page for
@@ -68,15 +68,19 @@ more information: http://www.clifford.at/yosys/download.html
 
 To configure the build system to use a specific compiler, use one of
 
-	$ make config-clang
-	$ make config-gcc
+	$ mkdir build && cd build && cmake .. -DBUILD_CLANG=ON
+	$ mkdir build && cd build && cmake .. -DBUILD_GCC=ON
 
-For other compilers and build configurations it might be
-necessary to make some changes to the config section of the
-Makefile.
+or simply:
 
-	$ vi Makefile            # ..or..
-	$ vi Makefile.conf
+	$ mkdir build && cd build && cmake ..
+
+<!-- For other compilers and build configurations it might be -->
+<!-- necessary to make some changes to the config section of the -->
+<!-- Makefile. -->
+
+<!-- $ vi Makefile            # ..or.. -->
+<!-- $ vi Makefile.conf -->
 
 To build Yosys simply type 'make' in this directory.
 

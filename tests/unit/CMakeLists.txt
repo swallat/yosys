@@ -1,4 +1,4 @@
-include_directories(GTEST_INCLUDE_DIRS)
+include_directories(${GTEST_INCLUDE_DIRS})
 
 add_executable(rtlilTest ${CMAKE_CURRENT_LIST_DIR}/kernel/rtlilTest.cc)
 target_link_libraries(rtlilTest GTest::GTest GTest::Main)

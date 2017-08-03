@@ -34,13 +34,14 @@ INSTALL_SUDO :=
 BINDIR := $(PREFIX)/bin
 LIBDIR := $(PREFIX)/lib
 DATDIR := $(PREFIX)/share/yosys
+PKGCONFIG_DIR := $(PREFIX)/share/pkgconfig
 
 EXE =
 OBJS =
 GENFILES =
 EXTRA_OBJS =
 EXTRA_TARGETS =
-TARGETS = yosys$(EXE) yosys-config
+TARGETS = yosys$(EXE) yosys-config yosys.pc
 
 PRETTY = 1
 SMALL = 0
@@ -409,6 +410,10 @@ yosys-config: misc/yosys-config.in
 			-e 's#@CXX@#$(CXX)#;' -e 's#@LDFLAGS@#$(LDFLAGS)#;' -e 's#@LDLIBS@#$(LDLIBS)#;' \
 			-e 's#@BINDIR@#$(BINDIR)#;' -e 's#@DATDIR@#$(DATDIR)#;' < $< > yosys-config
 	$(Q) chmod +x yosys-config
+
+yosys.pc: misc/yosys.pc.in
+    $(P) $(SED) -e 's#@YOSYS_INSTALL_PREFIX@#$(PREFIX)#' \
+                -e 's#@YOSYS_BINARY_INSTALL_DIRECTORY@#$(PREFIX)#' \
 
 abc/abc-$(ABCREV)$(EXE):
 	$(P)

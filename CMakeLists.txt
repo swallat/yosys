@@ -222,7 +222,7 @@ if(ENABLE_ABC)
     # delete your work on ABC..
     set(ABCREV "efbf7f13ea9e")
     set(ABCPULL "1")
-    if(NOT ABCURL)
+    if(NOT ABCURL)§
         set(ABCURL "https://bitbucket.org/alanmi/abc")
     endif(NOT ABCURL)
     set(ABCMKARGS "${ABCMKARGS} CC=\"${CMAKE_CXX_COMPILER}\" CXX=\"${CMAKE_CXX_COMPILER}\"")
@@ -232,7 +232,7 @@ if(ENABLE_ABC)
     if(NOT ABCEXTERNAL)
         include(ExternalProject)
         externalproject_add(abc
-                            SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/abc
+                            SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/abc
                             BUILD_IN_SOURCE 0
                             UPDATE_COMMAND ""
                             HG_REPOSITORY ${ABCURL}
@@ -420,7 +420,7 @@ if(ENABLE_TESTS)
 
     configure_file(
             "${CMAKE_CURRENT_SOURCE_DIR}/tests/bram/run-single.sh.in"
-            "${CMAKE_CURRENT_BINARY_DIR}/tests/bram/run-single.sh"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/bram/run-single.sh"
             @ONLY
     )
 

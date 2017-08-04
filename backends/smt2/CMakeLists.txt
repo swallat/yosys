@@ -16,7 +16,7 @@
 #   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 set(SOURCE_FILES ${SOURCE_FILES} ${CMAKE_CURRENT_LIST_DIR}/smt2.cc)
-if (NOT MINGW AND NOT BUILD_EMSCRIPTEN)
+if (NOT MINGW AND NOT EMSCRIPTEN)
 add_custom_target(${PROJECT_NAME}-smtbmc ALL
                   BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/yosys-smtbmc
                   COMMAND sed \'s|\#\#yosys-sys-path\#\#|sys.path += [os.path.dirname(__file__) + p for p in [\"/share/python3\", \"/../share/yosys/python3\"]]|;\'< ${CMAKE_SOURCE_DIR}/backends/smt2/smtbmc.py > ${CMAKE_CURRENT_BINARY_DIR}/yosys-smtbmc
@@ -34,4 +34,4 @@ add_custom_target(custom-python3-executable ALL
                 DEPENDS ${CMAKE_CURRENT_LIST_DIR}/smtio.py
                 WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
                 COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/share/python3")
-endif(NOT MINGW AND NOT BUILD_EMSCRIPTEN)
+endif(NOT MINGW AND NOT EMSCRIPTEN)

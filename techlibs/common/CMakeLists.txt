@@ -44,23 +44,22 @@ set(SOURCE_FILES ${SOURCE_FILES}
     ${CMAKE_CURRENT_BINARY_DIR}/techlibs/common/simlib_help.inc
     ${CMAKE_CURRENT_BINARY_DIR}/techlibs/common/simcells_help.inc)
 
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/share/techlibs/common)
 add_custom_target(copy-techlib-common-files ALL
                    BYPRODUCTS
-                   ${CMAKE_CURRENT_BINARY_DIR}/share/simlib.v
-                   ${CMAKE_CURRENT_BINARY_DIR}/share/simcells.v
-                   ${CMAKE_CURRENT_BINARY_DIR}/share/techmap.v
-                   ${CMAKE_CURRENT_BINARY_DIR}/share/pmux2mux.v
-                   ${CMAKE_CURRENT_BINARY_DIR}/share/adff2dff.v
-                   ${CMAKE_CURRENT_BINARY_DIR}/share/dff2ff.v
-                   ${CMAKE_CURRENT_BINARY_DIR}/share/cells.lib
-                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/simlib.v ${CMAKE_CURRENT_BINARY_DIR}/share/
-                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/simcells.v ${CMAKE_CURRENT_BINARY_DIR}/share/
-                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/techmap.v ${CMAKE_CURRENT_BINARY_DIR}/share/
-                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/pmux2mux.v ${CMAKE_CURRENT_BINARY_DIR}/share/
-                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/adff2dff.v ${CMAKE_CURRENT_BINARY_DIR}/share/
-                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/dff2ff.v ${CMAKE_CURRENT_BINARY_DIR}/share/
-                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells.lib ${CMAKE_CURRENT_BINARY_DIR}/share/
+                   ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/simlib.v
+                   ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/simcells.v
+                   ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/techmap.v
+                   ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/pmux2mux.v
+                   ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/adff2dff.v
+                   ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/dff2ff.v
+                   ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/cells.lib
+                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/simlib.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/
+                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/simcells.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/
+                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/techmap.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/
+                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/pmux2mux.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/
+                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/adff2dff.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/
+                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/dff2ff.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/
+                   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells.lib ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/
                    DEPENDS
                    ${CMAKE_CURRENT_LIST_DIR}/simlib.v
                    ${CMAKE_CURRENT_LIST_DIR}/simcells.v
@@ -70,5 +69,5 @@ add_custom_target(copy-techlib-common-files ALL
                    ${CMAKE_CURRENT_LIST_DIR}/dff2ff.v
                    ${CMAKE_CURRENT_LIST_DIR}/cells.lib
                    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-                   COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/share/*")
+                   COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/*")
 

@@ -93,12 +93,18 @@ option(ENABLE_UNDEFINED_SANITIZER "ENABLE_UNDEFINED_SANITIZER" OFF)
 option(ENABLE_CFI_SANITIZER "ENABLE_CFI_SANITIZER" OFF)
 
 
-set(CMAKE_INSTALL_PREFIX "/usr/local")
+if(NOT CMAKE_INSTALL_PREFIX)
+    set(CMAKE_INSTALL_PREFIX "/usr/local")
+endif(NOT CMAKE_INSTALL_PREFIX)
 include(GNUInstallDirs)
 message(STATUS "CMAKE_INSTALL_BINDIR: ${CMAKE_INSTALL_BINDIR}")
 message(STATUS "CMAKE_INSTALL_FULL_BINDIR: ${CMAKE_INSTALL_FULL_BINDIR}")
 message(STATUS "CMAKE_INSTALL_LIBDIR: ${CMAKE_INSTALL_LIBDIR}")
 message(STATUS "CMAKE_INSTALL_FULL_LIBDIR: ${CMAKE_INSTALL_FULL_LIBDIR}")
+set(PKGCONFIG_INSTALL_DIRECTORY ${CMAKE_INSTALL_DATADIR}/pkgconfig)
+set(PKGCONFIG_INSTALL_FULL_DIRECTORY ${CMAKE_INSTALL_FULL_DATADIR}/pkgconfig)
+message(STATUS "PKGCONFIG_INSTALL_DIRECTORY: ${PKGCONFIG_INSTALL_DIRECTORY}")
+message(STATUS "PKGCONFIG_INSTALL_FULL_DIRECTORY: ${PKGCONFIG_INSTALL_FULL_DIRECTORY}")
 set(CMAKE_INSTALL_DATADIR ${CMAKE_INSTALL_DATADIR}/yosys)
 set(CMAKE_INSTALL_FULL_DATADIR ${CMAKE_INSTALL_FULL_DATADIR}/yosys)
 message(STATUS "CMAKE_INSTALL_DATADIR: ${CMAKE_INSTALL_DATADIR}")
@@ -261,29 +267,29 @@ set(CMAKE_CXX_STANDARD 11)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
-set(INSTALL_HEADER_FILES
-    kernel/yosys.h
-    kernel/hashlib.h
-    kernel/log.h
-    kernel/rtlil.h
-    kernel/register.h
-    kernel/celltypes.h
-    kernel/celledges.h
-    kernel/consteval.h
-    kernel/sigtools.h
-    kernel/modtools.h
-    kernel/macc.h
-    kernel/utils.h
-    kernel/satgen.h
-    libs/ezsat/ezsat.h
-    libs/ezsat/ezminisat.h
-    libs/sha1/sha1.h
-    passes/fsm/fsmdata.h
-    frontends/ast/ast.h
-    backends/ilang/ilang_backend.h
-    )
+install(FILES kernel/yosys.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/kernel/")
+install(FILES kernel/hashlib.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/kernel/")
+install(FILES kernel/log.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/kernel/")
+install(FILES kernel/rtlil.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/kernel/")
+install(FILES kernel/register.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/kernel/")
+install(FILES kernel/celltypes.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/kernel/")
+install(FILES kernel/celledges.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/kernel/")
+install(FILES kernel/consteval.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/kernel/")
+install(FILES kernel/sigtools.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/kernel/")
+install(FILES kernel/modtools.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/kernel/")
+install(FILES kernel/macc.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/kernel/")
+install(FILES kernel/utils.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/kernel/")
+install(FILES kernel/satgen.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/kernel/")
 
-install(FILES ${INSTALL_HEADER_FILES} DESTINATION "${YOSYS_INCLUDE_DATADIR}")
+install(FILES libs/ezsat/ezsat.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/libs/ezsat/")
+install(FILES libs/ezsat/ezminisat.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/libs/ezsat/")
+install(FILES libs/sha1/sha1.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/libs/sha1/")
+
+install(FILES passes/fsm/fsmdata.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/passes/fsm/")
+
+install(FILES frontends/ast/ast.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/frontends/ast/")
+
+install(FILES backends/ilang/ilang_backend.h DESTINATION "${YOSYS_INCLUDE_DATADIR}/backends/ilang/")
 
 if(ENABLE_READLINE)
     include_directories(${Readline_INCLUDE_DIR})
@@ -402,7 +408,7 @@ if(ENABLE_LIBYOSYS)
 endif(ENABLE_LIBYOSYS)
 
 #Install shared files
-install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/share DESTINATION ${CMAKE_INSTALL_DATADIR})
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ DESTINATION ${CMAKE_INSTALL_DATADIR})
 
 #Uninstall Target
 # uninstall target
@@ -581,3 +587,4 @@ set(YOSYS_BINARY_INSTALL_DIRECTORY ${CMAKE_INSTALL_BINDIR})
 set(YOSYS_LIBRARY_INSTALL_DIRECTORY ${CMAKE_INSTALL_LIBDIR})
 set(YOSYS_INCLUDE_INSTALL_DIRECTORY ${YOSYS_INCLUDE_DATADIR})
 configure_file(misc/yosys.pc.in ${CMAKE_CURRENT_BINARY_DIR}/yosys.pc @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/yosys.pc DESTINATION ${PKGCONFIG_INSTALL_DIRECTORY})

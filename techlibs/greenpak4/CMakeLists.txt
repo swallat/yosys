@@ -21,21 +21,21 @@ set(SOURCE_FILES ${SOURCE_FILES}
     ${CMAKE_CURRENT_LIST_DIR}/greenpak4_dffinv.cc
     )
 
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/share/greenpak4/)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/greenpak4/)
 add_custom_target(copy-greenpak4-files ALL
                   BYPRODUCTS
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/greenpak4/cells_map.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/greenpak4/cells_sim.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/greenpak4/cells_latch.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/greenpak4/gp_dff.lib
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/greenpak4/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_sim.v ${CMAKE_CURRENT_BINARY_DIR}/share/greenpak4/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_latch.v ${CMAKE_CURRENT_BINARY_DIR}/share/greenpak4/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/gp_dff.lib ${CMAKE_CURRENT_BINARY_DIR}/share/greenpak4/
+                  ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/greenpak4/cells_map.v
+                  ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/greenpak4/cells_sim.v
+                  ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/greenpak4/cells_latch.v
+                  ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/greenpak4/gp_dff.lib
+                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/greenpak4/
+                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_sim.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/greenpak4/
+                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_latch.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/greenpak4/
+                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/gp_dff.lib ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/greenpak4/
                   DEPENDS
                   ${CMAKE_CURRENT_LIST_DIR}/cells_map.v
                   ${CMAKE_CURRENT_LIST_DIR}/cells_sim.v
                   ${CMAKE_CURRENT_LIST_DIR}/cells_latch.v
                   ${CMAKE_CURRENT_LIST_DIR}/gp_dff.lib
                   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-                  COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/share/greenpak4")
+                  COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/greenpak4")

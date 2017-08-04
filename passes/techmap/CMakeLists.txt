@@ -72,7 +72,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
     ${CMAKE_CURRENT_BINARY_DIR}/passes/techmap/techmap.inc
     )
 
-if(NOT BUILD_EMSCRIPTEN)
+if(NOT EMSCRIPTEN)
     add_executable(${PROJECT_NAME}-filterlib  ${CMAKE_CURRENT_LIST_DIR}/filterlib.cc)
     if(ENABLE_ADDERSS_SANITIZER)
         add_sanitize_address(${PROJECT_NAME}-filterlib)
@@ -90,4 +90,4 @@ if(NOT BUILD_EMSCRIPTEN)
         add_sanitize_cfi(${PROJECT_NAME}-filterlib)
     endif(ENABLE_CFI_SANITIZER)
     install(TARGETS ${PROJECT_NAME}-filterlib RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif(NOT BUILD_EMSCRIPTEN)
+endif(NOT EMSCRIPTEN)

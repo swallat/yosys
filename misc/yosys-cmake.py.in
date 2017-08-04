@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+#
+#   yosys -- Yosys Open SYnthesis Suite
+#
+#   Copyright (C) 2017  Sebastian Wallat <sebastian.wallat@rub.de>
+#
+#   Permission to use, copy, modify, and/or distribute this software for any
+#   purpose with or without fee is hereby granted, provided that the above
+#   copyright notice and this permission notice appear in all copies.
+#
+#   THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+#   WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+#   MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+#   ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+#   WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+#   ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+#   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+
+import argparse
+
+source_directory = "@SOURCE_DIRECTORY@"
+build_directory = "@BUILD_DIRECTORY@"
+pkg_config_path = "@PKG_CONFIG_PATH@"
+find_module_path = "@FIND_MODULE_PATH@"
+compile_definitions = '@COMPILE_DEFINITIONS@'
+cxx_standard = "@CXX_STANDARD@"
+
+pattern = """cmake_minimum_required(VERSION 3.9)
+project(yosys-test-plugin)
+{}
+set(CMAKE_CXX_STANDARD {})
+add_definitions({})
+find_package(yosys REQUIRED)
+
+include_directories(${{Yosys_INCLUDE_DIR}})
+add_library(${{PROJECT_NAME}} SHARED hello.cc)
+if(APPLE)
+    set_target_properties(${{PROJECT_NAME}} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup" SUFFIX ".dylib")
+endif(APPLE)
+"""
+
+bin_dir_build = """set(CMAKE_MODULE_PATH "{}" "${{CMAKE_MODULE_PATH}}")
+set(ENV{{PKG_CONFIG_PATH}} "{}:$ENV{{PKG_CONFIG_PATH}}")
+set(Yosys_INCLUDE_DIR "{}")
+set(Yosys_LIBRARY "{}")
+"""
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Write CMakeLists.txt for a Yosys Plugin")
+    parser.add_argument("-s", "--self_compiled", help="Use local build directory.", action="store_true")
+
+    args = parser.parse_args()
+    bin_dir_parameter = ""
+    if args.self_compiled:
+        bin_dir_parameter = bin_dir_build.format(find_module_path, pkg_config_path, source_directory, build_directory)
+    output = pattern.format(bin_dir_parameter, cxx_standard, compile_definitions)
+    with open("CMakeLists.txt", 'w+') as f:
+        f.write(output)

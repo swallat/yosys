@@ -33,3 +33,4 @@ cmake-build-debug
 /tests/unit/bintest/
 /tests/unit/objtest/
 /tests/sat/run-test.sh
+/yosys.pc

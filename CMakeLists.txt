@@ -263,7 +263,7 @@ if(ENABLE_GPROF)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 endif(ENABLE_GPROF)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -588,3 +588,69 @@ set(YOSYS_LIBRARY_INSTALL_DIRECTORY ${CMAKE_INSTALL_LIBDIR})
 set(YOSYS_INCLUDE_INSTALL_DIRECTORY ${YOSYS_INCLUDE_DATADIR})
 configure_file(misc/yosys.pc.in ${CMAKE_CURRENT_BINARY_DIR}/yosys.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/yosys.pc DESTINATION ${PKGCONFIG_INSTALL_DIRECTORY})
+
+#Added backward compatibility for yosys-config
+function(join OUTPUT GLUE VALUES)
+    string(REPLACE ";" "${GLUE}" _TMP_STR "${VALUES}")
+    set(${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
+endfunction()
+
+function(prepend var prefix)
+    foreach(f ${ARGN})
+        list(APPEND listVar ${prefix}${f})
+    endforeach(f)
+    set(${var} "${listVar}" PARENT_SCOPE)
+endfunction(prepend)
+
+#Include Dirs:
+get_property(include_dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+prepend(include_dirs "-I" ${include_dirs})
+join(include_dirs " " "${include_dirs}")
+message(STATUS "include_dirs: ${include_dirs}")
+
+get_property(compile_defs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY COMPILE_DEFINITIONS)
+prepend(compile_defs "-D" ${compile_defs})
+join(compile_defs " " "${compile_defs}")
+message(STATUS "compile_defs: ${compile_defs}")
+
+message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
+message(STATUS "CMAKE_CXX_STANDARD: ${CMAKE_CXX_STANDARD}")
+
+get_property(link_libs TARGET ${PROJECT_NAME} PROPERTY LINK_LIBRARIES)
+prepend(link_libs "-L" ${link_libs})
+join(link_libs " " "${link_libs}")
+message(STATUS "link_libs: ${link_libs}")
+
+include(CheckCXXCompilerFlag)
+set(ENABLE_CXXFLAGS_TO_CHECK
+    -std=gnu++1z
+    -std=c++1z
+    -std=gnu++14
+    -std=c++14
+    -std=gnu++1y
+    -std=c++1y
+    -std=gnu++11
+    -std=c++11
+    -std=gnu++0x
+    -std=c++0x)
+
+foreach(flag ${ENABLE_CXXFLAGS_TO_CHECK})
+    string(REPLACE "-std=" "_" flag_var ${flag})
+    string(REPLACE "+" "x" flag_var ${flag_var})
+    check_cxx_compiler_flag("${flag}" COMPILER_HAS_CXX_FLAG${flag_var})
+    if(COMPILER_HAS_CXX_FLAG${flag_var})
+        set(STANDARD_FLAG "${flag}")
+        break()
+    endif()
+endforeach()
+set(CXX ${CMAKE_CXX_COMPILER})
+set(CXXFLAGS "${include_dirs} ${compile_defs} ${CMAKE_CXX_FLAGS} ${STANDARD_FLAG}")
+set(LDFLAGS "-undefined dynamic_lookup")
+set(LDLIBS "${link_libs}")
+set(BINDIR ${CMAKE_INSTALL_FULL_BINDIR})
+set(DATDIR ${YOSYS_INCLUDE_FULL_DATADIR})
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/misc/yosys-config.in ${CMAKE_CURRENT_BINARY_DIR}/yosys-config @ONLY)
+file(COPY ${CMAKE_CURRENT_BINARY_DIR}/yosys-config DESTINATION ${CMAKE_CURRENT_BINARY_DIR} FILE_PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
+     GROUP_EXECUTE GROUP_READ WORLD_READ WORLD_EXECUTE)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/yosys-config DESTINATION ${CMAKE_INSTALL_BINDIR} PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
+        GROUP_EXECUTE GROUP_READ WORLD_READ WORLD_EXECUTE)

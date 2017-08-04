@@ -417,7 +417,7 @@ install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ DESTINATION ${CMAKE_I
 #Uninstall Target
 # uninstall target
 configure_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
+        "misc/cmake_uninstall.cmake.in"
         "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
         @ONLY)
 

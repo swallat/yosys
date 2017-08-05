@@ -75,15 +75,15 @@ set(SOURCE_FILES ${SOURCE_FILES}
 if(NOT EMSCRIPTEN)
     add_executable(${PROJECT_NAME}-filterlib  ${CMAKE_CURRENT_LIST_DIR}/filterlib.cc)
     if(ENABLE_READLINE)
-        target_link_libraries(${PROJECT_NAME}-lib ${Readline_LIBRARY})
+        target_link_libraries(${PROJECT_NAME}-filterlib ${Readline_LIBRARY})
     endif(ENABLE_READLINE)
 
     if(ENABLE_TCL)
-        target_link_libraries(${PROJECT_NAME}-lib ${TCL_LIBRARY} ${TK_LIBRARY})
+        target_link_libraries(${PROJECT_NAME}-filterlib ${TCL_LIBRARY} ${TK_LIBRARY})
     endif(ENABLE_TCL)
 
     if(ENABLE_PLUGINS)
-        target_link_libraries(${PROJECT_NAME}-lib ${LIBFFI_LIBRARY})
+        target_link_libraries(${PROJECT_NAME}-filterlib ${LIBFFI_LIBRARY})
     endif(ENABLE_PLUGINS)
     if(ENABLE_ADDERSS_SANITIZER)
         add_sanitize_address(${PROJECT_NAME}-filterlib)

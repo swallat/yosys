@@ -327,7 +327,8 @@ else()
     set(SEEDOPT "")
 endif(SEED)
 
-add_definitions(-D_YOSYS_ -DYOSYS_SRC="${YOSYS_SRC}" -DYOSYS_DATADIR="${DATDIR}")
+add_definitions(-D_YOSYS_ -DYOSYS_SRC="${YOSYS_SRC}" -DYOSYS_DATDIR="${YOSYS_INCLUDE_FULL_DATADIR}")
+set(CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES /usr/local/lib ${CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES})
 
 set(SOURCE_FILES
     kernel/version_${GIT_REV}.cc
@@ -372,7 +373,7 @@ if(NOT SMALL)
 endif(NOT SMALL)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} kernel/driver.cc)
-target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
+target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS} m z rt)
 
 if(ENABLE_READLINE)
     target_link_libraries(${PROJECT_NAME} ${Readline_LIBRARY})
@@ -405,7 +406,7 @@ install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 if(ENABLE_LIBYOSYS)
     add_library(${PROJECT_NAME}-lib SHARED ${SOURCE_FILES})
-    target_link_libraries(${PROJECT_NAME}-lib ${CMAKE_DL_LIBS})
+    target_link_libraries(${PROJECT_NAME}-lib ${CMAKE_DL_LIBS} m z rt)
     add_dependencies(${PROJECT_NAME}-lib ${PROJECT_NAME}) # Needed to not generate passes/techmap/techmap.inc twice
 
     if(ENABLE_READLINE)

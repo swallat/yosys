@@ -37,7 +37,7 @@ compile:
     - mkdir -p build
     - cd build
     - rm -rf *
-    - cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local/
+    - cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local/ -DBUILD_CLANG=ON
     - cmake --build . --target all --clean-first -- -j2  CCACHE_DIR=$(pwd)/../ccache
   cache:
       untracked: true

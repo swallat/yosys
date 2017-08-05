@@ -17,17 +17,18 @@
 
 set(SOURCE_FILES ${SOURCE_FILES} ${CMAKE_CURRENT_LIST_DIR}/synth_gowin.cc )
 
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/gowin/)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/share/gowin/)
 add_custom_target(copy-gowin-files ALL
                   BYPRODUCTS
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/gowin/cells_map.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/gowin/cells_sim.v
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/gowin/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_sim.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/gowin/
+                  ${CMAKE_CURRENT_BINARY_DIR}/share/gowin/cells_map.v
+                  ${CMAKE_CURRENT_BINARY_DIR}/share/gowin/cells_sim.v
+                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/gowin/
+                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_sim.v ${CMAKE_CURRENT_BINARY_DIR}/share/gowin/
                   DEPENDS
                   ${CMAKE_CURRENT_LIST_DIR}/cells_map.v
                   ${CMAKE_CURRENT_LIST_DIR}/cells_sim.v
                   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-                  COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/gowin")
+                  COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/share/gowin")
 
 
+install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR} DESTINATION ${CMAKE_INSTALL_DATADIR} FILES_MATCHING PATTERN "*.v")

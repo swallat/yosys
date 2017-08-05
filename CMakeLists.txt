@@ -16,7 +16,7 @@
 #   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.6)
 
 #compiler options
 option(BUILD_MINGW "BUILD_MINGW" OFF)
@@ -78,6 +78,7 @@ option(LINK_CURSES "LINK_CURSES" ON)
 option(LINK_TERMCAP "LINK_TERMCAP" OFF)
 option(SMALL "SMALL" OFF)
 option(ENABLE_TESTS "ENABLE_TESTS" ON)
+option(ENABLE_BLOGHTB "ENABLE_BLOGHTB" OFF)
 
 if(EMSCRIPTEN)
     set(ENABLE_TCL OFF)
@@ -146,8 +147,9 @@ if(APPLE)
         include_directories(${PORT_PREFIX}/include)
         link_directories(${PORT_PREFIX}/lib)
     endif(NOT homebrew STREQUAL "homebrew-NOTFOUND")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 endif(APPLE)
+
+#link_libraries(${CMAKE_DL_LIBS})
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -181,13 +183,13 @@ if(ENABLE_VERIFIC)
 endif(ENABLE_VERIFIC)
 
 find_package(PkgConfig REQUIRED)
-find_package(Bison REQUIRED)
-find_package(Flex REQUIRED)
+find_package(BISON REQUIRED)
+find_package(FLEX REQUIRED)
 if(NOT EMSCRIPTEN)
     find_package(Gettext REQUIRED)
 endif(NOT EMSCRIPTEN)
 set(Python_ADDITIONAL_VERSIONS 3.5 3.6)
-find_package(PythonInterp 3.6 REQUIRED)
+find_package(PythonInterp 3.5 REQUIRED)
 if(ENABLE_PLUGINS)
     find_package(LibFFI REQUIRED)
 endif(ENABLE_PLUGINS)
@@ -267,7 +269,7 @@ if(ENABLE_GPROF)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 endif(ENABLE_GPROF)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 11)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -373,6 +375,20 @@ if(NOT SMALL)
 endif(NOT SMALL)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} kernel/driver.cc)
+target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
+
+if(ENABLE_READLINE)
+    target_link_libraries(${PROJECT_NAME} ${Readline_LIBRARY})
+endif(ENABLE_READLINE)
+
+if(ENABLE_TCL)
+    target_link_libraries(${PROJECT_NAME} ${TCL_LIBRARY} ${TK_LIBRARY})
+endif(ENABLE_TCL)
+
+if(ENABLE_PLUGINS)
+    target_link_libraries(${PROJECT_NAME} ${LIBFFI_LIBRARY})
+endif(ENABLE_PLUGINS)
+
 if(ENABLE_ADDERSS_SANITIZER)
     add_sanitize_address(${PROJECT_NAME})
 endif(ENABLE_ADDERSS_SANITIZER)
@@ -392,7 +408,21 @@ install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 if(ENABLE_LIBYOSYS)
     add_library(${PROJECT_NAME}-lib SHARED ${SOURCE_FILES})
+    target_link_libraries(${PROJECT_NAME}-lib ${CMAKE_DL_LIBS})
     add_dependencies(${PROJECT_NAME}-lib ${PROJECT_NAME}) # Needed to not generate passes/techmap/techmap.inc twice
+
+    if(ENABLE_READLINE)
+        target_link_libraries(${PROJECT_NAME}-lib ${Readline_LIBRARY})
+    endif(ENABLE_READLINE)
+
+    if(ENABLE_TCL)
+        target_link_libraries(${PROJECT_NAME}-lib ${TCL_LIBRARY} ${TK_LIBRARY})
+    endif(ENABLE_TCL)
+
+    if(ENABLE_PLUGINS)
+        target_link_libraries(${PROJECT_NAME}-lib ${LIBFFI_LIBRARY})
+    endif(ENABLE_PLUGINS)
+
     if(ENABLE_ADDERSS_SANITIZER)
         add_sanitize_address(${PROJECT_NAME}-lib)
     endif(ENABLE_ADDERSS_SANITIZER)
@@ -412,7 +442,7 @@ if(ENABLE_LIBYOSYS)
 endif(ENABLE_LIBYOSYS)
 
 #Install shared files
-install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ DESTINATION ${CMAKE_INSTALL_DATADIR})
+#install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ DESTINATION ${CMAKE_INSTALL_DATADIR})
 
 #Uninstall Target
 # uninstall target
@@ -555,11 +585,11 @@ if(ENABLE_TESTS)
     add_test(NAME test/sat
              COMMAND run-test.sh ${SEEDOPT}
              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/sat)
-
-    add_test(NAME vloghtb
-             COMMAND run-test.sh
-             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/vloghtb)
-
+    if(ENABLE_BLOGHTB)
+        add_test(NAME vloghtb
+                 COMMAND run-test.sh
+                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/vloghtb)
+    endif(ENABLE_BLOGHTB)
     find_program(valgrind_exec valgrind)
     if(valgrind_exec_FOUND)
         add_custom_target(vgtest
@@ -568,8 +598,10 @@ if(ENABLE_TESTS)
     endif(valgrind_exec_FOUND)
 
     # Unit Tests
-    find_package(GTest REQUIRED)
-    include(tests/unit/CMakeLists.txt)
+    find_package(GTest)
+    if(GTest_FOUND)
+        include(tests/unit/CMakeLists.txt)
+    endif(GTest_FOUND)
 endif(ENABLE_TESTS)
 
 add_custom_target(update-manual

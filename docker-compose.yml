@@ -1,0 +1,10 @@
+---
+version: '3'
+services:
+  ubuntu:
+    build: .
+    volumes:
+      - .:/home/src/:rw
+      - ./build-ubuntu/:/home/build/:rw
+      - ./build-ubuntu/.ccache/:/root/.ccache/:rw
+...

@@ -21,18 +21,21 @@ set(SOURCE_FILES ${SOURCE_FILES}
     )
 
 
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/coolrunner2/)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/share/coolrunner2/)
 add_custom_target(copy-coolrunner2-files ALL
                   BYPRODUCTS
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/coolrunner2/cells_latch.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/coolrunner2/cells_sim.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/coolrunner2/xc2_dff.lib
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_latch.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/coolrunner2/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_sim.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/coolrunner2/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/xc2_dff.lib ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/coolrunner2/
+                  ${CMAKE_CURRENT_BINARY_DIR}/share/coolrunner2/cells_latch.v
+                  ${CMAKE_CURRENT_BINARY_DIR}/share/coolrunner2/cells_sim.v
+                  ${CMAKE_CURRENT_BINARY_DIR}/share/coolrunner2/xc2_dff.lib
+                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_latch.v ${CMAKE_CURRENT_BINARY_DIR}/share/coolrunner2/
+                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_sim.v ${CMAKE_CURRENT_BINARY_DIR}/share/coolrunner2/
+                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/xc2_dff.lib ${CMAKE_CURRENT_BINARY_DIR}/share/coolrunner2/
                   DEPENDS
                   ${CMAKE_CURRENT_LIST_DIR}/cells_latch.v
                   ${CMAKE_CURRENT_LIST_DIR}/cells_sim.v
                   ${CMAKE_CURRENT_LIST_DIR}/xc2_dff.lib
                   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-                  COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/coolrunner2")
+                  COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/share/coolrunner2")
+
+install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR} DESTINATION ${CMAKE_INSTALL_DATADIR} FILES_MATCHING PATTERN "*.v")
+install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR} DESTINATION ${CMAKE_INSTALL_DATADIR} FILES_MATCHING PATTERN "*.lib")

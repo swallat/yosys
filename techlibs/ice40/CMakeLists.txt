@@ -22,31 +22,31 @@ set(SOURCE_FILES ${SOURCE_FILES}
     ${CMAKE_CURRENT_LIST_DIR}/ice40_opt.cc
     )
 
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/)
 add_custom_target(generate-ice40-files ALL
                   BYPRODUCTS ${CMAKE_CURRENT_LIST_DIR}/brams_init.mk ${CMAKE_CURRENT_LIST_DIR}/brams_init1.vh ${CMAKE_CURRENT_LIST_DIR}/brams_init2.vh ${CMAKE_CURRENT_LIST_DIR}/brams_init3.vh
                   COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/brams_init.py
-                  COMMAND mv ${CMAKE_CURRENT_LIST_DIR}/brams_init1.vh ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/
-                  COMMAND mv ${CMAKE_CURRENT_LIST_DIR}/brams_init2.vh ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/
-                  COMMAND mv ${CMAKE_CURRENT_LIST_DIR}/brams_init3.vh ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/
+                  COMMAND mv ${CMAKE_CURRENT_LIST_DIR}/brams_init1.vh ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/
+                  COMMAND mv ${CMAKE_CURRENT_LIST_DIR}/brams_init2.vh ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/
+                  COMMAND mv ${CMAKE_CURRENT_LIST_DIR}/brams_init3.vh ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/
                   DEPENDS ${CMAKE_CURRENT_LIST_DIR}/brams_init.py
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                  COMMENT "Generating share/yosys/ice40/brams_init1.vh share/yosys/ice40/brams_init2.vh share/yosys/ice40/brams_init3.vh"
+                  COMMENT "Generating share/ice40/brams_init1.vh share/ice40/brams_init2.vh share/ice40/brams_init3.vh"
                   )
 add_custom_target(copy-ice40-files ALL
                   BYPRODUCTS
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/cells_map.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/cells_sim.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/arith_map.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/latches_map.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/brams.txt
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/brams_map.v
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_sim.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/arith_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/latches_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/brams_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/brams.txt ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40/
+                  ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/cells_map.v
+                  ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/cells_sim.v
+                  ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/arith_map.v
+                  ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/latches_map.v
+                  ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/brams.txt
+                  ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/brams_map.v
+                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/
+                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_sim.v ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/
+                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/arith_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/
+                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/latches_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/
+                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/brams_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/
+                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/brams.txt ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/
                   DEPENDS
                   ${CMAKE_CURRENT_LIST_DIR}/cells_map.v
                   ${CMAKE_CURRENT_LIST_DIR}/cells_sim.v
@@ -55,8 +55,11 @@ add_custom_target(copy-ice40-files ALL
                   ${CMAKE_CURRENT_LIST_DIR}/brams_map.v
                   ${CMAKE_CURRENT_LIST_DIR}/brams.txt
                   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-                  COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/share/yosys/ice40"
+                  COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/share/ice40"
                   )
 
-
-
+install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR} DESTINATION ${CMAKE_INSTALL_DATADIR} FILES_MATCHING PATTERN "*.v")
+install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR} DESTINATION ${CMAKE_INSTALL_DATADIR} FILES_MATCHING PATTERN "*.txt")
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/brams_init1.vh DESTINATION ${CMAKE_INSTALL_DATADIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/brams_init2.vh DESTINATION ${CMAKE_INSTALL_DATADIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/share/ice40/brams_init3.vh DESTINATION ${CMAKE_INSTALL_DATADIR})

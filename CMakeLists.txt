@@ -299,14 +299,12 @@ install(FILES backends/ilang/ilang_backend.h DESTINATION "${YOSYS_INCLUDE_DATADI
 
 if(ENABLE_READLINE)
     include_directories(${Readline_INCLUDE_DIR})
-    link_libraries(${Readline_LIBRARY})
     add_definitions(-DYOSYS_ENABLE_READLINE)
 endif(ENABLE_READLINE)
 
 if(ENABLE_TCL)
     include_directories(${TCL_INCLUDE_PATH}
                         ${TK_INCLUDE_PATH})
-    link_libraries(${TCL_LIBRARY} ${TK_LIBRARY})
     add_definitions(-DYOSYS_ENABLE_TCL)
 endif(ENABLE_TCL)
 
@@ -316,7 +314,6 @@ endif(ENABLE_ABC)
 
 if(ENABLE_PLUGINS)
     include_directories(${LIBFFI_INCLUDE_DIR})
-    link_libraries(${LIBFFI_LIBRARY})
     add_definitions(-DYOSYS_ENABLE_PLUGINS)
 endif(ENABLE_PLUGINS)
 

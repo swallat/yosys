@@ -92,9 +92,13 @@ struct CounterExtraction
 	int width;						//counter width
 	RTLIL::Wire* rwire;				//the register output
 	bool has_reset;					//true if we have a reset
+	bool has_ce;					//true if we have a clock enable
 	RTLIL::SigSpec rst;				//reset pin
+	bool rst_inverted;				//true if reset is active low
+	bool rst_to_max;				//true if we reset to max instead of 0
 	int count_value;				//value we count from
-	RTLIL::SigSpec clk;				//clock signal
+	RTLIL::SigSpec ce;				//clock signal
+	RTLIL::SigSpec clk;				//clock enable, if any
 	RTLIL::SigSpec outsig;			//counter output signal
 	RTLIL::Cell* count_mux;			//counter mux
 	RTLIL::Cell* count_reg;			//counter register
@@ -103,15 +107,22 @@ struct CounterExtraction
 };
 
 //attempt to extract a counter centered on the given adder cell
-int greenpak4_counters_tryextract(ModIndex& index, Cell *cell, CounterExtraction& extract)
+//For now we only support DOWN counters.
+//TODO: up/down support
+int counter_tryextract(
+	ModIndex& index,
+	Cell *cell,
+	CounterExtraction& extract,
+	pool<RTLIL::IdString>& parallel_cells,
+	int maxwidth)
 {
 	SigMap& sigmap = index.sigmap;
 
-	//GreenPak does not support counters larger than 14 bits so immediately skip anything bigger
-	//TODO: infer cascaded counters?
+	//A counter with less than 2 bits makes no sense
+	//TODO: configurable min threshold
 	int a_width = cell->getParam("\\A_WIDTH").as_int();
 	extract.width = a_width;
-	if(a_width > 14)
+	if( (a_width < 2) || (a_width > maxwidth) )
 		return 1;
 
 	//Second input must be a single bit
@@ -183,12 +194,43 @@ int greenpak4_counters_tryextract(ModIndex& index, Cell *cell, CounterExtraction
 		return 13;
 	extract.underflow_inv = underflow_inv;
 
-	//Y connection of the mux must have exactly one load, the counter's internal register
+	//Y connection of the mux must have exactly one load, the counter's internal register, if there's no clock enable
+	//If we have a clock enable, Y drives the B input of a mux. A of that mux must come from our register
 	const RTLIL::SigSpec muxy = sigmap(count_mux->getPort("\\Y"));
 	pool<Cell*> muxy_loads = get_other_cells(muxy, index, count_mux);
 	if(muxy_loads.size() != 1)
 		return 14;
-	Cell* count_reg = *muxy_loads.begin();
+	Cell* muxload = *muxy_loads.begin();
+	Cell* count_reg = muxload;
+	Cell* cemux = NULL;
+	RTLIL::SigSpec cey;
+	if(muxload->type == "$mux")
+	{
+		//This mux is probably a clock enable mux.
+		//Find our count register (should be our only load)
+		cemux = muxload;
+		cey = sigmap(cemux->getPort("\\Y"));
+		pool<Cell*> cey_loads = get_other_cells(cey, index, cemux);
+		if(cey_loads.size() != 1)
+			return 24;
+		count_reg = *cey_loads.begin();
+
+		//Mux should have A driven by count Q, and B by muxy
+		//TODO: if A and B are swapped, CE polarity is inverted
+		if(sigmap(cemux->getPort("\\B")) != muxy)
+			return 24;
+		if(sigmap(cemux->getPort("\\A")) != sigmap(count_reg->getPort("\\Q")))
+			return 24;
+		if(sigmap(cemux->getPort("\\Y")) != sigmap(count_reg->getPort("\\D")))
+			return 24;
+
+		//Select of the mux is our clock enable
+		extract.has_ce = true;
+		extract.ce = sigmap(cemux->getPort("\\S"));
+	}
+	else
+		extract.has_ce = false;
+
 	extract.count_reg = count_reg;
 	if(count_reg->type == "$dff")
 		extract.has_reset = false;
@@ -196,11 +238,16 @@ int greenpak4_counters_tryextract(ModIndex& index, Cell *cell, CounterExtraction
 	{
 		extract.has_reset = true;
 
-		//Verify ARST_VALUE is zero and ARST_POLARITY is 1
-		//TODO: infer an inverter to make it 1 if necessary, so we can support negative level resets?
-		if(count_reg->getParam("\\ARST_POLARITY").as_int() != 1)
-			return 22;
-		if(count_reg->getParam("\\ARST_VALUE").as_int() != 0)
+		//Check polarity of reset - we may have to add an inverter later on!
+		extract.rst_inverted = (count_reg->getParam("\\ARST_POLARITY").as_int() != 1);
+
+		//Verify ARST_VALUE is zero or full scale
+		int rst_value = count_reg->getParam("\\ARST_VALUE").as_int();
+		if(rst_value == 0)
+			extract.rst_to_max = false;
+		else if(rst_value == extract.count_value)
+			extract.rst_to_max = true;
+		else
 			return 23;
 
 		//Save the reset
@@ -209,33 +256,50 @@ int greenpak4_counters_tryextract(ModIndex& index, Cell *cell, CounterExtraction
 	//TODO: support synchronous reset
 	else
 		return 15;
-	if(!is_full_bus(muxy, index, count_mux, "\\Y", count_reg, "\\D"))
+
+	//Sanity check that we use the ALU output properly
+	if(extract.has_ce)
+	{
+		if(!is_full_bus(muxy, index, count_mux, "\\Y", cemux, "\\B"))
+			return 16;
+		if(!is_full_bus(cey, index, cemux, "\\Y", count_reg, "\\D"))
+			return 16;
+	}
+	else if(!is_full_bus(muxy, index, count_mux, "\\Y", count_reg, "\\D"))
 		return 16;
 
 	//TODO: Verify count_reg CLK_POLARITY is 1
 
 	//Register output must have exactly two loads, the inverter and ALU
 	//(unless we have a parallel output!)
+	//If we have a clock enable, 3 is OK
 	const RTLIL::SigSpec qport = count_reg->getPort("\\Q");
 	const RTLIL::SigSpec cnout = sigmap(qport);
 	pool<Cell*> cnout_loads = get_other_cells(cnout, index, count_reg);
-	if(cnout_loads.size() > 2)
+	unsigned int max_loads = 2;
+	if(extract.has_ce)
+		max_loads = 3;
+	if(cnout_loads.size() > max_loads)
 	{
-		//It's OK to have other loads iff they go to a DAC or DCMP (these are POUT)
 		for(auto c : cnout_loads)
 		{
 			if(c == underflow_inv)
 				continue;
 			if(c == cell)
 				continue;
+			if(c == muxload)
+				continue;
 
-			//If the cell is not a DAC or DCMP, complain
-			if( (c->type != "\\GP_DCMP") && (c->type != "\\GP_DAC") )
-				return 17;
+			//If we specified a limited set of cells for parallel output, check that we only drive them
+			if(!parallel_cells.empty())
+			{
+				//Make sure we're in the whitelist
+				if( parallel_cells.find(c->type) == parallel_cells.end())
+					return 17;
+			}
 
 			//Figure out what port(s) are driven by it
 			//TODO: this can probably be done more efficiently w/o multiple iterations over our whole net?
-			RTLIL::IdString portname;
 			for(auto b : qport)
 			{
 				pool<ModIndex::PortInfo> ports = index.query_ports(b);
@@ -243,18 +307,9 @@ int greenpak4_counters_tryextract(ModIndex& index, Cell *cell, CounterExtraction
 				{
 					if(x.cell != c)
 						continue;
-					if(portname == "")
-						portname = x.port;
-
-					//somehow our counter output is going to multiple ports
-					//this makes no sense, don't allow inference
-					else if(portname != x.port)
-						return 17;
+					extract.pouts.insert(ModIndex::PortInfo(c, x.port, 0));
 				}
 			}
-
-			//Save the other loads
-			extract.pouts.insert(ModIndex::PortInfo(c, portname, 0));
 		}
 	}
 	if(!is_full_bus(cnout, index, count_reg, "\\Q", underflow_inv, "\\A", true))
@@ -276,12 +331,14 @@ int greenpak4_counters_tryextract(ModIndex& index, Cell *cell, CounterExtraction
 	return 0;
 }
 
-void greenpak4_counters_worker(
+void counter_worker(
 	ModIndex& index,
 	Cell *cell,
 	unsigned int& total_counters,
 	pool<Cell*>& cells_to_remove,
-	pool<pair<Cell*, string>>& cells_to_rename)
+	pool<pair<Cell*, string>>& cells_to_rename,
+	pool<RTLIL::IdString>& parallel_cells,
+	int maxwidth)
 {
 	SigMap& sigmap = index.sigmap;
 
@@ -328,16 +385,16 @@ void greenpak4_counters_worker(
 
 	//Attempt to extract a counter
 	CounterExtraction extract;
-	int reason = greenpak4_counters_tryextract(index, cell, extract);
+	int reason = counter_tryextract(index, cell, extract, parallel_cells, maxwidth);
 
 	//Nonzero code - we could not find a matchable counter.
 	//Do nothing, unless extraction was forced in which case give an error
 	if(reason != 0)
 	{
-		static const char* reasons[24]=
+		static const char* reasons[25]=
 		{
 			"no problem",									//0
-			"counter is larger than 14 bits",				//1
+			"counter is too large/small",					//1
 			"counter does not count by one",				//2
 			"counter uses signed math",						//3
 			"counter does not count by one",				//4
@@ -353,13 +410,14 @@ void greenpak4_counters_worker(
 			"Mux output is used outside counter",			//14
 			"Counter reg is not DFF/ADFF",					//15
 			"Counter input is not full bus",				//16
-			"Count register is used outside counter, but not by a DCMP or DAC",		//17
+			"Count register is used outside counter, but not by an allowed cell",		//17
 			"Register output is not full bus",				//18
 			"Register output is not full bus",				//19
 			"No init value found",							//20
 			"Underflow value is not equal to init value",	//21
-			"Reset polarity is not positive",				//22
-			"Reset is not to zero"							//23
+			"RESERVED, not implemented",					//22, kept for compatibility but not used anymore
+			"Reset is not to zero or COUNT_TO",				//23
+			"Clock enable configuration is unsupported"		//24
 		};
 
 		if(force_extract)
@@ -372,29 +430,8 @@ void greenpak4_counters_worker(
 		return;
 	}
 
-	//Figure out the final cell type based on the counter size
-	string celltype = "\\GP_COUNT8";
-	if(extract.width > 8)
-		celltype = "\\GP_COUNT14";
-
 	//Get new cell name
-	string countname = string("$auto$GP_COUNTx$") + log_id(extract.rwire->name.str());
-
-	//Log it
-	total_counters ++;
-	string reset_type = "non-resettable";
-	if(extract.has_reset)
-	{
-		//TODO: support other kind of reset
-		reset_type = "async resettable";
-	}
-	log("  Found %d-bit %s down counter %s (counting from %d) for register %s declared at %s\n",
-		extract.width,
-		reset_type.c_str(),
-		countname.c_str(),
-		extract.count_value,
-		log_id(extract.rwire->name),
-		count_reg_src.c_str());
+	string countname = string("$COUNTx$") + log_id(extract.rwire->name.str());
 
 	//Wipe all of the old connections to the ALU
 	cell->unsetPort("\\A");
@@ -411,14 +448,23 @@ void greenpak4_counters_worker(
 	cell->unsetParam("\\Y_WIDTH");
 
 	//Change the cell type
-	cell->type = celltype;
+	cell->type = "$__COUNT_";
 
 	//Hook up resets
 	if(extract.has_reset)
 	{
 		//TODO: support other kinds of reset
 		cell->setParam("\\RESET_MODE", RTLIL::Const("LEVEL"));
-		cell->setPort("\\RST", extract.rst);
+
+		//If the reset is active low, infer an inverter ($__COUNT_ cells always have active high reset)
+		if(extract.rst_inverted)
+		{
+			auto realreset = cell->module->addWire(NEW_ID);
+			cell->module->addNot(NEW_ID, extract.rst, RTLIL::SigSpec(realreset));
+			cell->setPort("\\RST", realreset);
+		}
+		else
+			cell->setPort("\\RST", extract.rst);
 	}
 	else
 	{
@@ -427,11 +473,27 @@ void greenpak4_counters_worker(
 	}
 
 	//Hook up other stuff
-	cell->setParam("\\CLKIN_DIVIDE", RTLIL::Const(1));
+	//cell->setParam("\\CLKIN_DIVIDE", RTLIL::Const(1));
 	cell->setParam("\\COUNT_TO", RTLIL::Const(extract.count_value));
-
+	cell->setParam("\\WIDTH", RTLIL::Const(extract.width));
 	cell->setPort("\\CLK", extract.clk);
 	cell->setPort("\\OUT", extract.outsig);
+
+	//Hook up clock enable
+	if(extract.has_ce)
+	{
+		cell->setParam("\\HAS_CE", RTLIL::Const(1));
+		cell->setPort("\\CE", extract.ce);
+	}
+	else
+		cell->setParam("\\HAS_CE", RTLIL::Const(0));
+
+	//Hook up hard-wired ports (for now up/down are not supported), default to no parallel output
+	cell->setParam("\\HAS_POUT", RTLIL::Const(0));
+	cell->setParam("\\RESET_TO_MAX", RTLIL::Const(0));
+	cell->setParam("\\DIRECTION", RTLIL::Const("DOWN"));
+	cell->setPort("\\CE", RTLIL::Const(1));
+	cell->setPort("\\UP", RTLIL::Const(0));
 
 	//Hook up any parallel outputs
 	for(auto load : extract.pouts)
@@ -444,6 +506,7 @@ void greenpak4_counters_worker(
 		//Connect it to our parallel output
 		//(this is OK to do more than once b/c they all go to the same place)
 		cell->setPort("\\POUT", sig);
+		cell->setParam("\\HAS_POUT", RTLIL::Const(1));
 	}
 
 	//Delete the cells we've replaced (let opt_clean handle deleting the now-redundant wires)
@@ -451,33 +514,108 @@ void greenpak4_counters_worker(
 	cells_to_remove.insert(extract.count_reg);
 	cells_to_remove.insert(extract.underflow_inv);
 
+	//Log it
+	total_counters ++;
+	string reset_type = "non-resettable";
+	if(extract.has_reset)
+	{
+		if(extract.rst_inverted)
+			reset_type = "negative";
+		else
+			reset_type = "positive";
+
+		//TODO: support other kind of reset
+		reset_type += " async resettable";
+	}
+	log("  Found %d-bit (%s) down counter %s (counting from %d) for register %s, declared at %s\n",
+		extract.width,
+		reset_type.c_str(),
+		countname.c_str(),
+		extract.count_value,
+		log_id(extract.rwire->name),
+		count_reg_src.c_str());
+
+	//Optimize the counter
+	//If we have no parallel output, and we have redundant bits, shrink us
+	if(extract.pouts.empty())
+	{
+		//TODO: Need to update this when we add support for counters with nonzero reset values
+		//to make sure the reset value fits in our bit space too
+
+		//Optimize it
+		int newbits = ceil(log2(extract.count_value));
+		if(extract.width != newbits)
+		{
+			cell->setParam("\\WIDTH", RTLIL::Const(newbits));
+			log("    Optimizing out %d unused high-order bits (new width is %d)\n",
+				extract.width - newbits,
+				newbits);
+		}
+	}
+
 	//Finally, rename the cell
 	cells_to_rename.insert(pair<Cell*, string>(cell, countname));
 }
 
-struct Greenpak4CountersPass : public Pass {
-	Greenpak4CountersPass() : Pass("greenpak4_counters", "Extract GreenPak4 counter cells") { }
+struct ExtractCounterPass : public Pass {
+	ExtractCounterPass() : Pass("extract_counter", "Extract GreenPak4 counter cells") { }
 	virtual void help()
 	{
 		//   |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
 		log("\n");
-		log("    greenpak4_counters [options] [selection]\n");
+		log("    extract_counter [options] [selection]\n");
 		log("\n");
-		log("This pass converts non-resettable or async resettable down counters to GreenPak4\n");
-		log("counter cells (All other GreenPak4 counter modes must be instantiated manually.)\n");
+		log("This pass converts non-resettable or async resettable down counters to\n");
+		log("counter cells. Use a target-specific 'techmap' map file to convert those cells\n");
+		log("to the actual target cells.\n");
+		log("\n");
+		log("    -maxwidth N\n");
+		log("        Only extract counters up to N bits wide\n");
+		log("\n");
+		log("    -pout X,Y,...\n");
+		log("        Only allow parallel output from the counter to the listed cell types\n");
+		log("        (if not specified, parallel outputs are not restricted)\n");
+		log("\n");
 		log("\n");
 	}
 	virtual void execute(std::vector<std::string> args, RTLIL::Design *design)
 	{
-		log_header(design, "Executing GREENPAK4_COUNTERS pass (mapping counters to hard IP blocks).\n");
+		log_header(design, "Executing EXTRACT_COUNTER pass (find counters in netlist).\n");
 
+		int maxwidth = 64;
 		size_t argidx;
+		pool<RTLIL::IdString> parallel_cells;
 		for (argidx = 1; argidx < args.size(); argidx++)
 		{
-			// if (args[argidx] == "-v") {
-			// 	continue;
-			// }
-			break;
+			if (args[argidx] == "-pout")
+			{
+				if(argidx + 1 >= args.size())
+				{
+					log_error("extract_counter -pout requires an argument\n");
+					return;
+				}
+
+				std::string pouts = args[++argidx];
+				std::string tmp;
+				for(size_t i=0; i<pouts.length(); i++)
+				{
+					if(pouts[i] == ',')
+					{
+						parallel_cells.insert(RTLIL::escape_id(tmp));
+						tmp = "";
+					}
+					else
+						tmp += pouts[i];
+				}
+				parallel_cells.insert(RTLIL::escape_id(tmp));
+				continue;
+			}
+
+			if (args[argidx] == "-maxwidth" && argidx+1 < args.size())
+			{
+				maxwidth = atoi(args[++argidx].c_str());
+				continue;
+			}
 		}
 		extra_args(args, argidx, design);
 
@@ -490,7 +628,7 @@ struct Greenpak4CountersPass : public Pass {
 
 			ModIndex index(module);
 			for (auto cell : module->selected_cells())
-				greenpak4_counters_worker(index, cell, total_counters, cells_to_remove, cells_to_rename);
+				counter_worker(index, cell, total_counters, cells_to_remove, cells_to_rename, parallel_cells, maxwidth);
 
 			for(auto cell : cells_to_remove)
 			{
@@ -508,6 +646,6 @@ struct Greenpak4CountersPass : public Pass {
 		if(total_counters)
 			log("Extracted %u counters\n", total_counters);
 	}
-} Greenpak4CountersPass;
+} ExtractCounterPass;
 
 PRIVATE_NAMESPACE_END

@@ -19,7 +19,8 @@ set(SOURCE_FILES ${SOURCE_FILES} ${CMAKE_CURRENT_LIST_DIR}/hierarchy.cc)
 
 if(NOT SMALL)
     set(SOURCE_FILES ${SOURCE_FILES}
-        ${CMAKE_CURRENT_LIST_DIR}/singleton.cc
+        ${CMAKE_CURRENT_LIST_DIR}/uniquify.cc
+        ${CMAKE_CURRENT_LIST_DIR}/hierarchy.cc
         ${CMAKE_CURRENT_LIST_DIR}/submod.cc
         )
 endif(NOT SMALL)

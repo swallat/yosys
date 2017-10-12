@@ -37,6 +37,9 @@ if(NOT SMALL)
         ${CMAKE_CURRENT_LIST_DIR}/iopadmap.cc
         ${CMAKE_CURRENT_LIST_DIR}/hilomap.cc
         ${CMAKE_CURRENT_LIST_DIR}/extract.cc
+        ${CMAKE_CURRENT_LIST_DIR}/extract_counter.cc
+        ${CMAKE_CURRENT_LIST_DIR}/extract_fa.cc
+        ${CMAKE_CURRENT_LIST_DIR}/extract_reduce.cc
         ${CMAKE_CURRENT_LIST_DIR}/alumacc.cc
         ${CMAKE_CURRENT_LIST_DIR}/dff2dffe.cc
         ${CMAKE_CURRENT_LIST_DIR}/dffinit.cc

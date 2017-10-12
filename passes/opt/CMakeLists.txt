@@ -27,5 +27,7 @@ set(SOURCE_FILES ${SOURCE_FILES} ${CMAKE_CURRENT_LIST_DIR}/opt.cc
 if(NOT SMALL)
     set(SOURCE_FILES ${SOURCE_FILES} ${CMAKE_CURRENT_LIST_DIR}/share.cc
         ${CMAKE_CURRENT_LIST_DIR}/wreduce.cc
+        ${CMAKE_CURRENT_LIST_DIR}/opt_demorgan.cc
+        ${CMAKE_CURRENT_LIST_DIR}/rmports.cc
         )
 endif()

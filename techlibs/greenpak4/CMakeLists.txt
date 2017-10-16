@@ -17,7 +17,6 @@
 
 set(SOURCE_FILES ${SOURCE_FILES}
     ${CMAKE_CURRENT_LIST_DIR}/synth_greenpak4.cc
-    ${CMAKE_CURRENT_LIST_DIR}/greenpak4_counters.cc
     ${CMAKE_CURRENT_LIST_DIR}/greenpak4_dffinv.cc
     )
 

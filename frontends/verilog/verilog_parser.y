@@ -142,7 +142,9 @@ static void free_attr(std::map<std::string, AstNode*> *al)
 %define parse.error verbose
 %define parse.lac full
 
-%expect 2
+%nonassoc FAKE_THEN
+%nonassoc TOK_ELSE
+
 %debug
 
 %%
@@ -355,6 +357,8 @@ package_body_stmt:
 	localparam_decl;
 
 non_opt_delay:
+	'#' TOK_ID { delete $2; } |
+	'#' TOK_CONSTVAL { delete $2; } |
 	'#' '(' expr ')' { delete $3; } |
 	'#' '(' expr ':' expr ':' expr ')' { delete $3; delete $5; delete $7; };
 
@@ -1259,7 +1263,7 @@ optional_else:
 		ast_stack.back()->children.push_back(cond);
 		ast_stack.push_back(block);
 	} behavioral_stmt |
-	/* empty */;
+	/* empty */ %prec FAKE_THEN;
 
 case_body:
 	case_body case_item |
@@ -1430,7 +1434,7 @@ gen_stmt_or_null:
 	gen_stmt_block | ';';
 
 opt_gen_else:
-	TOK_ELSE gen_stmt_or_null | /* empty */;
+	TOK_ELSE gen_stmt_or_null | /* empty */ %prec FAKE_THEN;
 
 expr:
 	basic_expr {

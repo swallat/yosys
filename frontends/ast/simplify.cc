@@ -387,7 +387,7 @@ bool AstNode::simplify(bool const_fold, bool at_zero, bool in_lvalue, int stage,
 		}
 		for (size_t i = 0; i < children.size(); i++) {
 			AstNode *node = children[i];
-			if (node->type == AST_PARAMETER || node->type == AST_LOCALPARAM || node->type == AST_WIRE || node->type == AST_AUTOWIRE)
+			if (node->type == AST_PARAMETER || node->type == AST_LOCALPARAM || node->type == AST_WIRE || node->type == AST_AUTOWIRE || node->type == AST_MEMORY)
 				while (node->simplify(true, false, false, 1, -1, false, node->type == AST_PARAMETER || node->type == AST_LOCALPARAM))
 					did_something = true;
 		}
@@ -405,9 +405,13 @@ bool AstNode::simplify(bool const_fold, bool at_zero, bool in_lvalue, int stage,
 		current_always_clocked = false;
 
 		if (type == AST_ALWAYS)
-			for (auto child : children)
+			for (auto child : children) {
 				if (child->type == AST_POSEDGE || child->type == AST_NEGEDGE)
 					current_always_clocked = true;
+				if (child->type == AST_EDGE && GetSize(child->children) == 1 &&
+						child->children[0]->type == AST_IDENTIFIER && child->children[0]->str == "\\$global_clock")
+					current_always_clocked = true;
+			}
 	}
 
 	int backup_width_hint = width_hint;
@@ -1824,21 +1828,6 @@ skip_dynamic_range_lvalue_expansion:;
 				goto apply_newNode;
 			}
 
-			if (str == "\\$rose" || str == "\\$fell")
-			{
-				if (GetSize(children) != 1)
-					log_error("System function %s got %d arguments, expected 1 at %s:%d.\n",
-							RTLIL::unescape_id(str).c_str(), int(children.size()), filename.c_str(), linenum);
-
-				if (!current_always_clocked)
-					log_error("System function %s is only allowed in clocked blocks at %s:%d.\n",
-							RTLIL::unescape_id(str).c_str(), filename.c_str(), linenum);
-
-				newNode = new AstNode(AST_EQ, children.at(0)->clone(), clone());
-				newNode->children.at(1)->str = "\\$past";
-				goto apply_newNode;
-			}
-
 			// $anyconst and $anyseq are mapped in AstNode::genRTLIL()
 			if (str == "\\$anyconst" || str == "\\$anyseq") {
 				recursion_counter--;
@@ -1867,6 +1856,76 @@ skip_dynamic_range_lvalue_expansion:;
 						result = i + 1;
 
 				newNode = mkconst_int(result, false);
+				goto apply_newNode;
+			}
+
+			if (str == "\\$size" || str == "\\$bits")
+			{
+				if (str == "\\$bits" && children.size() != 1)
+					log_error("System function %s got %d arguments, expected 1 at %s:%d.\n",
+							RTLIL::unescape_id(str).c_str(), int(children.size()), filename.c_str(), linenum);
+
+				if (str == "\\$size" && children.size() != 1 && children.size() != 2)
+					log_error("System function %s got %d arguments, expected 1 or 2 at %s:%d.\n",
+							RTLIL::unescape_id(str).c_str(), int(children.size()), filename.c_str(), linenum);
+
+				int dim = 1;
+				if (str == "\\$size" && children.size() == 2) {
+					AstNode *buf = children[1]->clone();
+					// Evaluate constant expression
+					while (buf->simplify(true, false, false, stage, width_hint, sign_hint, false)) { }
+					dim = buf->asInt(false);
+					delete buf;
+				}
+				AstNode *buf = children[0]->clone();
+				int mem_depth = 1;
+				AstNode *id_ast = NULL;
+
+				// Is this needed?
+				//while (buf->simplify(true, false, false, stage, width_hint, sign_hint, false)) { }
+				buf->detectSignWidth(width_hint, sign_hint);
+
+				if (buf->type == AST_IDENTIFIER) {
+					id_ast = buf->id2ast;
+					if (id_ast == NULL && current_scope.count(buf->str))
+						id_ast = current_scope.at(buf->str);
+					if (!id_ast)
+						log_error("Failed to resolve identifier %s for width detection at %s:%d!\n", buf->str.c_str(), filename.c_str(), linenum);
+					if (id_ast->type == AST_MEMORY) {
+						// We got here only if the argument is a memory
+						// Otherwise $size() and $bits() return the expression width
+						AstNode *mem_range = id_ast->children[1];
+						if (str == "\\$bits") {
+							if (mem_range->type == AST_RANGE) {
+								if (!mem_range->range_valid)
+									log_error("Failed to detect width of memory access `%s' at %s:%d!\n", buf->str.c_str(), filename.c_str(), linenum);
+								mem_depth = mem_range->range_left - mem_range->range_right + 1;
+							} else
+								log_error("Unknown memory depth AST type in `%s' at %s:%d!\n", buf->str.c_str(), filename.c_str(), linenum);
+						} else {
+							// $size()
+							if (mem_range->type == AST_RANGE) {
+								if (!mem_range->range_valid)
+									log_error("Failed to detect width of memory access `%s' at %s:%d!\n", buf->str.c_str(), filename.c_str(), linenum);
+								int dims;
+								if (id_ast->multirange_dimensions.empty())
+									dims = 1;
+								else
+									dims = GetSize(id_ast->multirange_dimensions)/2;
+								if (dim == 1)
+									width_hint = (dims > 1) ? id_ast->multirange_dimensions[1] : (mem_range->range_left - mem_range->range_right + 1);
+								else if (dim <= dims) {
+									width_hint = id_ast->multirange_dimensions[2*dim-1];
+								} else if ((dim > dims+1) || (dim < 0))
+									log_error("Dimension %d out of range in `%s', as it only has dimensions 1..%d at %s:%d!\n", dim, buf->str.c_str(), dims+1, filename.c_str(), linenum);
+							} else
+								log_error("Unknown memory depth AST type in `%s' at %s:%d!\n", buf->str.c_str(), filename.c_str(), linenum);
+						}
+					}
+				}
+				delete buf;
+
+				newNode = mkconst_int(width_hint * mem_depth, false);
 				goto apply_newNode;
 			}
 

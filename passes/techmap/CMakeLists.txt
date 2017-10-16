@@ -76,8 +76,11 @@ set(SOURCE_FILES ${SOURCE_FILES}
     )
 
 if(NOT EMSCRIPTEN)
-    add_executable(${PROJECT_NAME}-filterlib  ${CMAKE_CURRENT_LIST_DIR}/filterlib.cc)
-        target_link_libraries(${PROJECT_NAME}-filterlib ${CMAKE_DL_LIBS} m z rt)
+    add_executable(${PROJECT_NAME}-filterlib ${CMAKE_CURRENT_LIST_DIR}/filterlib.cc)
+    target_link_libraries(${PROJECT_NAME}-filterlib ${CMAKE_DL_LIBS} m z)
+    if(NOT APPLE)
+        target_link_libraries(${PROJECT_NAME}-filterlib ${CMAKE_DL_LIBS} rt)
+    endif(NOT APPLE)
     if(ENABLE_READLINE)
         target_link_libraries(${PROJECT_NAME}-filterlib ${Readline_LIBRARY})
     endif(ENABLE_READLINE)

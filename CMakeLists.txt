@@ -80,6 +80,8 @@ option(SMALL "SMALL" OFF)
 option(ENABLE_TESTS "ENABLE_TESTS" ON)
 option(ENABLE_BLOGHTB "ENABLE_BLOGHTB" OFF)
 
+include(cmake/copy_files.cmake)
+
 if(EMSCRIPTEN)
     set(ENABLE_TCL OFF)
     set(ENABLE_ABC OFF)
@@ -232,7 +234,7 @@ if(ENABLE_ABC)
     # is just a symlink to your actual ABC working directory, as 'make mrproper'
     # will remove the 'abc' directory and you do not want to accidentally
     # delete your work on ABC..
-    set(ABCREV "efbf7f13ea9e")
+    set(ABCREV "6283c5d99b06")
     set(ABCPULL "1")
     if(NOT ABCURL)
         set(ABCURL "https://bitbucket.org/alanmi/abc")
@@ -373,7 +375,10 @@ if(NOT SMALL)
 endif(NOT SMALL)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} kernel/driver.cc)
-target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS} m z rt)
+target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS} m z)
+if(NOT APPLE)
+    target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS} rt)
+endif(NOT APPLE)
 
 if(ENABLE_READLINE)
     target_link_libraries(${PROJECT_NAME} ${Readline_LIBRARY})
@@ -406,7 +411,10 @@ install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 if(ENABLE_LIBYOSYS)
     add_library(${PROJECT_NAME}-lib SHARED ${SOURCE_FILES})
-    target_link_libraries(${PROJECT_NAME}-lib ${CMAKE_DL_LIBS} m z rt)
+    target_link_libraries(${PROJECT_NAME}-lib ${CMAKE_DL_LIBS} m z)
+    if(NOT APPLE)
+        target_link_libraries(${PROJECT_NAME}-lib ${CMAKE_DL_LIBS} rt)
+    endif(NOT APPLE)
     add_dependencies(${PROJECT_NAME}-lib ${PROJECT_NAME}) # Needed to not generate passes/techmap/techmap.inc twice
 
     if(ENABLE_READLINE)

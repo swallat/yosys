@@ -18,7 +18,7 @@
 include(${CMAKE_CURRENT_LIST_DIR}/common/CMakeLists.txt)
 
 if(NOT SMALL)
-    include(${CMAKE_CURRENT_LIST_DIR}/altera_intel/CMakeLists.txt)
+    include(${CMAKE_CURRENT_LIST_DIR}/intel/CMakeLists.txt)
     include(${CMAKE_CURRENT_LIST_DIR}/coolrunner2/CMakeLists.txt)
     include(${CMAKE_CURRENT_LIST_DIR}/gowin/CMakeLists.txt)
     include(${CMAKE_CURRENT_LIST_DIR}/greenpak4/CMakeLists.txt)

@@ -46,5 +46,6 @@ if(NOT SMALL)
         ${CMAKE_CURRENT_LIST_DIR}/torder.cc
         ${CMAKE_CURRENT_LIST_DIR}/write_file.cc
         ${CMAKE_CURRENT_LIST_DIR}/trace.cc
+        ${CMAKE_CURRENT_LIST_DIR}/blackbox.cc
         )
 endif(NOT SMALL)

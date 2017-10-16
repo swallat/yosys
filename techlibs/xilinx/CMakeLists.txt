@@ -35,45 +35,8 @@ add_custom_target(generate-xilinx-files ALL
                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                   COMMENT "Generating share/xilinx/brams_init_36.vh share/xilinx/brams_init_32.vh share/xilinx/brams_init_18.vh share/xilinx/brams_init_16.vh"
                   )
-add_custom_target(copy-xilinx-files ALL
-                  BYPRODUCTS
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/cells_map.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/cells_sim.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/cells_xtra.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/arith_map.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/brams.txt
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/brams_map.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/brams_bb.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/drams.txt
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/drams_map.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/drams_bb.v
-                  ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/lut2lut.v
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_sim.v ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/cells_xtra.v ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/arith_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/brams_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/brams_bb.v ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/brams.txt ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/drams_map.v ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/drams_bb.v ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/drams.txt ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/
-                  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/lut2lut.v ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/
-                  DEPENDS
-                  ${CMAKE_CURRENT_LIST_DIR}/cells_map.v
-                  ${CMAKE_CURRENT_LIST_DIR}/cells_sim.v
-                  ${CMAKE_CURRENT_LIST_DIR}/cells_xtra.v
-                  ${CMAKE_CURRENT_LIST_DIR}/arith_map.v
-                  ${CMAKE_CURRENT_LIST_DIR}/brams_map.v
-                  ${CMAKE_CURRENT_LIST_DIR}/brams_bb.v
-                  ${CMAKE_CURRENT_LIST_DIR}/brams.txt
-                  ${CMAKE_CURRENT_LIST_DIR}/drams_map.v
-                  ${CMAKE_CURRENT_LIST_DIR}/drams_bb.v
-                  ${CMAKE_CURRENT_LIST_DIR}/drams.txt
-                  ${CMAKE_CURRENT_LIST_DIR}/lut2lut.v
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-                  COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx"
-                  )
+
+copy_files("${CMAKE_CURRENT_LIST_DIR}/*.v;${CMAKE_CURRENT_LIST_DIR}/*.txt" ${CMAKE_CURRENT_BINARY_DIR}/share/xilinx/ copy-xilinx-files)
 
 install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR} DESTINATION ${CMAKE_INSTALL_DATADIR} FILES_MATCHING PATTERN "*.v")
 install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR} DESTINATION ${CMAKE_INSTALL_DATADIR} FILES_MATCHING PATTERN "*.txt")

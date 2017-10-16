@@ -15,15 +15,6 @@
 #   ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 #   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-include(${CMAKE_CURRENT_LIST_DIR}/common/CMakeLists.txt)
-
-if(NOT SMALL)
-    include(${CMAKE_CURRENT_LIST_DIR}/intel/CMakeLists.txt)
-    include(${CMAKE_CURRENT_LIST_DIR}/easic/CMakeLists.txt)
-    include(${CMAKE_CURRENT_LIST_DIR}/achronix/CMakeLists.txt)
-    include(${CMAKE_CURRENT_LIST_DIR}/coolrunner2/CMakeLists.txt)
-    include(${CMAKE_CURRENT_LIST_DIR}/gowin/CMakeLists.txt)
-    include(${CMAKE_CURRENT_LIST_DIR}/greenpak4/CMakeLists.txt)
-    include(${CMAKE_CURRENT_LIST_DIR}/ice40/CMakeLists.txt)
-    include(${CMAKE_CURRENT_LIST_DIR}/xilinx/CMakeLists.txt)
-endif(NOT SMALL)
+set(SOURCE_FILES ${SOURCE_FILES} ${CMAKE_CURRENT_LIST_DIR}/synth_intel.cc)
+copy_files(${CMAKE_CURRENT_LIST_DIR}/*.v ${CMAKE_CURRENT_BINARY_DIR}/share/intel/ copy-intel-files)
+install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR} DESTINATION ${CMAKE_INSTALL_DATADIR} FILES_MATCHING PATTERN "*.v")

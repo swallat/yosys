@@ -23,6 +23,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
     ${CMAKE_CURRENT_LIST_DIR}/fsm_extract.cc
     ${CMAKE_CURRENT_LIST_DIR}/fsm_info.cc
     ${CMAKE_CURRENT_LIST_DIR}/fsm_map.cc
+    ${CMAKE_CURRENT_LIST_DIR}/fsm_obfuscate.cc
     ${CMAKE_CURRENT_LIST_DIR}/fsm_opt.cc
     ${CMAKE_CURRENT_LIST_DIR}/fsm_recode.cc
     )

@@ -62,7 +62,9 @@ struct FsmPass : public Pass {
 		log("    -fullexpand\n");
 		log("        call expand with -full option\n");
 		log("\n");
-		log("    -encoding type\n");
+        log("    -obfuscate\n");
+        log("\n");
+        log("    -encoding type\n");
 		log("    -fm_set_fsm_file file\n");
 		log("    -encfile file\n");
 		log("        passed through to fsm_recode pass\n");
@@ -76,6 +78,7 @@ struct FsmPass : public Pass {
 		bool flag_expand = false;
 		bool flag_fullexpand = false;
 		bool flag_export = false;
+        bool flag_obfuscate = false;
 		std::string fm_set_fsm_file_opt;
 		std::string encfile_opt;
 		std::string encoding_opt;
@@ -122,6 +125,10 @@ struct FsmPass : public Pass {
 				flag_export = true;
 				continue;
 			}
+            if (arg == "-obfuscate") {
+                flag_obfuscate = true;
+                continue;
+            }
 			break;
 		}
 		extra_args(args, argidx, design);
@@ -139,6 +146,9 @@ struct FsmPass : public Pass {
 			Pass::call(design, "opt_clean");
 			Pass::call(design, "fsm_opt");
 		}
+
+        if (flag_obfuscate)
+            Pass::call(design, "fsm_obfuscate");
 
 		if (!flag_norecode)
 			Pass::call(design, "fsm_recode" + fm_set_fsm_file_opt + encfile_opt + encoding_opt);

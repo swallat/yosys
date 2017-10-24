@@ -9,6 +9,8 @@ output reg red_a, green_a, red_b, green_b;
 (* gentb_constant = 0 *)
 wire reset;
 
+(* fsm_obfuscate = "true" *)
+(* fsm_obfuscate_states = "7" *)
 integer state;
 reg [3:0] cnt;
 

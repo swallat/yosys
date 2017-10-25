@@ -16,6 +16,7 @@ ENABLE_LIBYOSYS := 0
 
 # other configuration flags
 ENABLE_GPROF := 0
+ENABLE_DEBUG := 0
 ENABLE_NDEBUG := 0
 LINK_CURSES := 0
 LINK_TERMCAP := 0
@@ -99,7 +100,7 @@ OBJS = kernel/version_$(GIT_REV).o
 # is just a symlink to your actual ABC working directory, as 'make mrproper'
 # will remove the 'abc' directory and you do not want to accidentally
 # delete your work on ABC..
-ABCREV = 6283c5d99b06
+ABCREV = f6838749f234
 ABCPULL = 1
 ABCURL ?= https://bitbucket.org/alanmi/abc
 ABCMKARGS = CC="$(CXX)" CXX="$(CXX)" ABC_USE_LIBSTDCXX=1
@@ -251,7 +252,15 @@ LDFLAGS += -pg
 endif
 
 ifeq ($(ENABLE_NDEBUG),1)
-CXXFLAGS := -O3 -DNDEBUG $(filter-out -Os,$(CXXFLAGS))
+CXXFLAGS := -O3 -DNDEBUG $(filter-out -Os -ggdb,$(CXXFLAGS))
+endif
+
+ifeq ($(ENABLE_DEBUG),1)
+ifeq ($(CONFIG),clang)
+CXXFLAGS := -O0 $(filter-out -Os,$(CXXFLAGS))
+else
+CXXFLAGS := -Og $(filter-out -Os,$(CXXFLAGS))
+endif
 endif
 
 ifeq ($(ENABLE_ABC),1)

@@ -683,8 +683,8 @@ message(STATUS "link_libs: ${link_libs}")
 
 include(CheckCXXCompilerFlag)
 set(ENABLE_CXXFLAGS_TO_CHECK
-    -std=gnu++1z
-    -std=c++1z
+    -std=gnu++17
+    -std=c++17
     -std=gnu++14
     -std=c++14
     -std=gnu++1y

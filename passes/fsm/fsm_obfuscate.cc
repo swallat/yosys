@@ -14,6 +14,10 @@
 
 USING_YOSYS_NAMESPACE
 PRIVATE_NAMESPACE_BEGIN
+    static void fsm_obfuscate(RTLIL::Design *design, RTLIL::Module *module, RTLIL::Cell *cell, int num_of_obfuscated_states){
+        log("Obfuscating state machine from module '%s' and cell '%s'\n", module->name.c_str(), cell->name.c_str());
+        log("Adding %d new states to obfuscation\n", num_of_obfuscated_states);
+    }
 
     struct FsmObfuscatePass : public Pass {
         FsmObfuscatePass() : Pass("fsm_obfuscate", "obfuscate FSM using HARPOON") { }
@@ -38,14 +42,16 @@ PRIVATE_NAMESPACE_BEGIN
                 for (auto &cell_it : module->cells_) {
                     RTLIL::Cell *cell;
                     cell = cell_it.second;
-                    if (cell->attributes.count("\\fsm_obfuscate") > 0){
-                        std::string attribute = cell->attributes.at("\\fsm_obfuscate").decode_string();
-                        log("name: %s; fsm_obfuscate_attribute: %s\n", cell->name.c_str(), attribute.c_str());
+                    if (cell_it.second->type == "$fsm"){
+                        log("modul: %s, cell: %s\n", module->name.c_str(), cell_it.second->name.c_str());
+                        for (auto &att : cell->attributes)
+                            log("    attribute: %s, %s\n", att.first.c_str(), att.second.decode_string().c_str());
+                        for (auto &att : cell->connections())
+                            log("    connections: %s, %s\n", att.first.c_str(), att.second.as_string().c_str());
                     }
-
-                    if (cell->attributes.count("\\fsm_obfuscate_states") > 0){
-                        std::string attribute = cell->attributes.at("\\fsm_obfuscate_states").decode_string();
-                        log("fsm_obfuscate_states_attribute: %s\n", attribute.c_str());
+                    if (cell->attributes.count("\\fsm_obfuscate") > 0){
+                        int num_of_obfuscated_states = std::atoi(cell->attributes.at("\\fsm_obfuscate_states").decode_string().c_str());
+                        fsm_obfuscate(design, module, cell, num_of_obfuscated_states);
                     }
                 }
 

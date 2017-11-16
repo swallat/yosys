@@ -7,7 +7,9 @@ module example(
     parameter S0 = 0, S1 = 1, S2 = 2, S3 = 3;
 
     // state register
-    reg     [1:0]state = S0;
+    (* fsm_obfuscate = "true" *)
+    (* fsm_obfuscate_states = "7" *)
+    reg     [1:0]state;
     reg     [1:0]next_state = S0;
     
     // debouncer for button

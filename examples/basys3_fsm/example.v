@@ -1,6 +1,8 @@
 module example(
     input clk,
-    input button, 
+    input button,
+    input dummy,
+    input [3:0] harpoon,
     output reg [3:0] led);
 
     // states
@@ -49,6 +51,8 @@ module example(
                 begin
                     if (pb_up)
                         next_state = S1;
+                    else if (dummy)
+                        next_state = S2;
                     else
                         next_state = S0;
                 end

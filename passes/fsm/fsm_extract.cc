@@ -163,6 +163,9 @@ undef_bit_in_next_state:
 		tr.ctrl_in = sig2const(ce, ctrl_in, RTLIL::State::Sa, dont_care);
 		tr.ctrl_out = sig2const(ce, ctrl_out, RTLIL::State::Sx);
 
+		log("\tctrl_in: %s, dont_care: %s, out: %s\n", log_signal(ctrl_in), log_signal(dont_care), log_signal(tr.ctrl_in));
+
+
 		std::map<RTLIL::SigBit, int> ctrl_in_bit_indices;
 		for (int i = 0; i < GetSize(ctrl_in); i++)
 			ctrl_in_bit_indices[ctrl_in[i]] = i;

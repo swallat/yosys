@@ -81,9 +81,14 @@ if(NOT EMSCRIPTEN)
     if(NOT APPLE)
         target_link_libraries(${PROJECT_NAME}-filterlib ${CMAKE_DL_LIBS} rt)
     endif(NOT APPLE)
+
     if(ENABLE_READLINE)
         target_link_libraries(${PROJECT_NAME}-filterlib ${Readline_LIBRARY})
     endif(ENABLE_READLINE)
+
+    if(ENABLE_EDITLINE)
+        target_link_libraries(${PROJECT_NAME}-filterlib ${EDIT_LIBRARY})
+    endif(ENABLE_EDITLINE)
 
     if(ENABLE_TCL)
         target_link_libraries(${PROJECT_NAME}-filterlib ${TCL_LIBRARY} ${TK_LIBRARY})

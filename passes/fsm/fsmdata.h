@@ -75,6 +75,8 @@ struct FsmData
 			bits_table.insert(bits_table.end(), bits_state_out.begin(), bits_state_out.end());
 			bits_table.insert(bits_table.end(), bits_ctrl_in.begin(), bits_ctrl_in.end());
 			bits_table.insert(bits_table.end(), bits_state_in.begin(), bits_state_in.end());
+
+            //log("\t%s\n", log_signal(bits_table));
 		}
 	}
 

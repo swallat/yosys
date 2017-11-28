@@ -17,19 +17,15 @@
 USING_YOSYS_NAMESPACE
 PRIVATE_NAMESPACE_BEGIN
 
-    static RTLIL::Const sig2const(RTLIL::SigSpec sig, RTLIL::State noconst_state, RTLIL::SigSpec dont_care = RTLIL::SigSpec())
-    {
-        if (dont_care.size() > 0) {
-            for (int i = 0; i < GetSize(sig); i++)
-                if (dont_care.extract(sig[i]).size() > 0)
-                    sig[i] = noconst_state;
+    template<class InIt>
+    std::string print_range(InIt first, InIt last, char const* delim = "\n"){
+        std::stringstream string;
+        --last;
+        for(; first != last; ++first){
+            string << *first << delim;
         }
-
-        for (int i = 0; i < GetSize(sig); i++)
-            if (sig[i].wire != NULL)
-                sig[i] = noconst_state;
-
-        return sig.as_const();
+        string << *first;
+        return string.str();
     }
 
     static void fsm_obfuscate(RTLIL::Cell *cell, RTLIL::Module *module, int num_of_obfuscated_states, RTLIL::Wire *harpoon_signal) {
@@ -66,12 +62,47 @@ PRIVATE_NAMESPACE_BEGIN
         }
 
 
+
+        // transitions
+        // add harpoon ctrl signal to ports
+        RTLIL::SigSpec sig_in = cell->getPort("\\CTRL_IN");
+        sig_in.append(harpoon_signal);
+        cell->setPort("\\CTRL_IN", sig_in);
+
+        log("\n");
+        log("  Input signals:\n");
+        sig_in = cell->getPort("\\CTRL_IN");
+        for (int i = 0; i < GetSize(sig_in); i++)
+            log("  %3d: %s\n", i, log_signal(sig_in[i]));
+
+
+        int ctrl_in_length_before_harpoon = sig_in.size();
+        int ctrl_in_with_harpoon_sig = ctrl_in_length_before_harpoon + harpoon_signal->width;
+        fsm_data.num_inputs = ctrl_in_with_harpoon_sig;
+
+        // recode of old transitions
+        for (int i = 0; i < fsm_data.transition_table.size(); i++){
+            FsmData::transition_t tr = fsm_data.transition_table[i];
+            RTLIL::Const ctrl_in = tr.ctrl_in;
+            for (int j = 0; j < harpoon_signal->width; j++){
+                ctrl_in.bits.insert(ctrl_in.bits.begin(), RTLIL::State::Sa);
+            }
+            log("\tctrl_in: %s\n", log_signal(ctrl_in));
+            log("\t%s\n", print_range(ctrl_in.bits.rbegin(), ctrl_in.bits.rend(), "").c_str());
+
+            fsm_data.transition_table[i] = tr;
+        }
+
+
+        auto var = cell->parameters.at("\\TRANS_TABLE");
+        /*
+
         // add transitions
         int number_of_harpoon_bits = harpoon_signal->width;
         log("\tnumber_of_harpoon_bits: %d\n", number_of_harpoon_bits);
 
         for (int i = number_of_original_states; i < number_of_total_states; i++){
-            log("state: %d", i);
+            log("\tstate: %d", i);
             int random_number_of_transitions = (rand() % num_of_obfuscated_states) + 1;
             log(" , number_of transitions: %d\n", random_number_of_transitions);
             for (int j = 0; j < random_number_of_transitions; j++){
@@ -79,8 +110,6 @@ PRIVATE_NAMESPACE_BEGIN
 
 
                 // figuring out random jump between two states
-                log("%s\n", log_signal(sig2const(harpoon_signal, RTLIL::State::Sa)));
-
                 int random_state_out;
                 do {
                     random_state_out = (rand() % (number_of_harpoon_bits)) + number_of_original_states;
@@ -128,7 +157,7 @@ PRIVATE_NAMESPACE_BEGIN
         log("\n");
 
         // create random transitions
-
+        */
 
         // store fsm data
         fsm_data.copy_to_cell(cell);

@@ -66,6 +66,7 @@ PRIVATE_NAMESPACE_BEGIN
         // transitions
         // add harpoon ctrl signal to ports
         RTLIL::SigSpec sig_in = cell->getPort("\\CTRL_IN");
+        int ctrl_in_length_before_harpoon = sig_in.size();
         sig_in.append(harpoon_signal);
         cell->setPort("\\CTRL_IN", sig_in);
 
@@ -76,28 +77,24 @@ PRIVATE_NAMESPACE_BEGIN
             log("  %3d: %s\n", i, log_signal(sig_in[i]));
 
 
-        int ctrl_in_length_before_harpoon = sig_in.size();
+
         int ctrl_in_with_harpoon_sig = ctrl_in_length_before_harpoon + harpoon_signal->width;
         fsm_data.num_inputs = ctrl_in_with_harpoon_sig;
+
 
         // recode of old transitions
         for (int i = 0; i < fsm_data.transition_table.size(); i++){
             FsmData::transition_t tr = fsm_data.transition_table[i];
-            RTLIL::Const ctrl_in = tr.ctrl_in;
             for (int j = 0; j < harpoon_signal->width; j++){
-                ctrl_in.bits.insert(ctrl_in.bits.begin(), RTLIL::State::Sa);
+                tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::Sa);
             }
-            log("\tctrl_in: %s\n", log_signal(ctrl_in));
-            log("\t%s\n", print_range(ctrl_in.bits.rbegin(), ctrl_in.bits.rend(), "").c_str());
-
             fsm_data.transition_table[i] = tr;
         }
 
 
-        auto var = cell->parameters.at("\\TRANS_TABLE");
-        /*
+        // add random transitions
+        std::srand((int)std::time(0));
 
-        // add transitions
         int number_of_harpoon_bits = harpoon_signal->width;
         log("\tnumber_of_harpoon_bits: %d\n", number_of_harpoon_bits);
 
@@ -108,25 +105,50 @@ PRIVATE_NAMESPACE_BEGIN
             for (int j = 0; j < random_number_of_transitions; j++){
                 FsmData::transition_t tr;
 
-
                 // figuring out random jump between two states
                 int random_state_out;
                 do {
-                    random_state_out = (rand() % (number_of_harpoon_bits)) + number_of_original_states;
+                    random_state_out = (rand() % num_of_obfuscated_states) + number_of_original_states;
                 } while (random_state_out == i);
-                log("\ttransition: %d --> %d\n", i, random_state_out);
+
+                // original signal has to be don't care
+                for (int k = 0; k < ctrl_in_length_before_harpoon; k++){
+                    tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::Sa);
+                }
+
+                // setting random ctrl_inputs
+                for (int k = ctrl_in_length_before_harpoon; k < ctrl_in_with_harpoon_sig; k++){
+                    int random_value = (rand() % 3);
+                    switch(random_value) {
+                        case 0: {
+                            tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::S0);
+                            break;
+                        }
+                        case 1: {
+                            tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::S1);
+                            break;
+                        }
+                        case 2: {
+                            tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::Sa);
+                            break;
+                        }
+                        default:
+                            break;
+                    }
+                }
 
                 tr.state_in = i;
                 tr.state_out = random_state_out;
 
-                // setting the ctrl_in necessary for the jump
-                //how to build control signal?!
-                RTLIL::Const ctrl_in;
 
 
+                for (int k = 0; k < fsm_data.num_outputs; k++){
+                    tr.ctrl_out.bits.push_back(RTLIL::State::Sa);
+                }
 
-                tr.ctrl_in = ctrl_in;
-                //fsm_data.transition_table.push_back(tr);
+                log("\ttransition: %d (%s) --> %d (%s)\n", i, log_signal(tr.ctrl_in), random_state_out, log_signal(tr.ctrl_out));
+
+                fsm_data.transition_table.push_back(tr);
             }
         }
 
@@ -134,30 +156,69 @@ PRIVATE_NAMESPACE_BEGIN
         // harpoon key
         std::vector<int> harpoon_key;
         std::vector<int>::iterator it;
+        int length_of_key = (rand() % num_of_obfuscated_states) + 1;
 
-        it = harpoon_key.begin();
+
 
         // generate key
+        it = harpoon_key.begin();
         for (int i = number_of_original_states; i < number_of_total_states; i++){
             it = harpoon_key.insert ( it , i );
         }
-        std::srand((int)std::time(0));
         std::shuffle(harpoon_key.begin(), harpoon_key.end(), std::default_random_engine(std::random_device()()));
 
-
-
         // shorten key
-        int length_of_key = 3;
-
         harpoon_key.erase (harpoon_key.begin()+length_of_key,harpoon_key.end());
 
+        log("\n");
+        log("\n\tharpoon key:\n");
         log("\tlength_of_key: %d; harpoon_key: ", length_of_key);
         for (int i : harpoon_key)
             log("%d ", i);
         log("\n");
 
-        // create random transitions
-        */
+
+        for (int i = 0; i < harpoon_key.size(); i++){
+            FsmData::transition_t tr;
+            // original signal has to be don't care
+            for (int k = 0; k < ctrl_in_length_before_harpoon; k++){
+                tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::Sa);
+            }
+
+            // setting random ctrl_inputs
+            for (int k = ctrl_in_length_before_harpoon; k < ctrl_in_with_harpoon_sig; k++){
+                int random_value = (rand() % 2);
+                switch(random_value) {
+                    case 0: {
+                        tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::S0);
+                        break;
+                    }
+                    case 1: {
+                        tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::S1);
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            }
+
+            tr.state_in = harpoon_key[i];
+            if (i == harpoon_key.size() - 1)
+                tr.state_out = 0;
+            else
+                tr.state_out = harpoon_key[i + 1];
+
+
+
+            for (int k = 0; k < fsm_data.num_outputs; k++){
+                tr.ctrl_out.bits.push_back(RTLIL::State::Sa);
+            }
+
+            log("\ttransition: %d (%s) --> %d (%s)\n", tr.state_in, log_signal(tr.ctrl_in), tr.state_out, log_signal(tr.ctrl_out));
+
+            fsm_data.transition_table.push_back(tr);
+        }
+
 
         // store fsm data
         fsm_data.copy_to_cell(cell);
@@ -179,16 +240,15 @@ PRIVATE_NAMESPACE_BEGIN
             log_header(design, "Executing FSM Obfuscation pass.\n");
             size_t argidx;
 
-            for (auto &mod_it : design->modules_){
-                RTLIL::Module *module;
-                module = mod_it.second;
+            for (const auto &mod_it : design->modules_){
+                RTLIL::Module *module = mod_it.second;
                 int num_of_obfuscated_states = 0;
                 int obfuscate_on = 0;
 
-                RTLIL::Wire *harpoon_signal;
+                RTLIL::Wire *harpoon_signal = nullptr;
                 bool harpoon_signal_exists = false;
                 std::size_t found = false;
-                for (auto &wire_it : module->wires_){
+                for (const auto &wire_it : module->wires_){
                     found = std::string(wire_it.second->name.c_str()).find("harpoon");
                     if (found != std::string::npos){
                         harpoon_signal_exists = true;
@@ -196,10 +256,9 @@ PRIVATE_NAMESPACE_BEGIN
                     }
                 }
 
-                for (auto &cell_it : module->cells_) {
+                for (const auto &cell_it : module->cells_) {
 
-                    RTLIL::Cell *cell;
-                    cell = cell_it.second;
+                    RTLIL::Cell *cell = cell_it.second;
                     if (cell_it.second->type == "$fsm" && design->selected(mod_it.second, cell_it.second)){
 
                         if (harpoon_signal_exists){
@@ -220,7 +279,7 @@ PRIVATE_NAMESPACE_BEGIN
                             std::string true_str = "true";
                             if ((attribute.compare("true") == 0) && (num_of_obfuscated_states > 0)){
                                 log("\texecuting fsm obfuscation path with following parameters:\n\tnum_of_states = %d\n", num_of_obfuscated_states);
-                                fsm_obfuscate(cell_it.second, mod_it.second, num_of_obfuscated_states, harpoon_signal);
+                                fsm_obfuscate(cell, module, num_of_obfuscated_states, harpoon_signal);
                             } else
                                 log("\tcode annotations missing\n");
 

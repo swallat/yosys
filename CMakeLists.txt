@@ -146,7 +146,7 @@ if(APPLE)
     find_program(macports port)
     if(NOT homebrew STREQUAL "homebrew-NOTFOUND")
         # homebrew search paths
-        execute_process(COMMAND brew --prefix OUTPUT_VARIABLE BREW_PREFIX)
+        execute_process(COMMAND ${homebrew} --prefix OUTPUT_VARIABLE BREW_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
         string(STRIP ${BREW_PREFIX} BREW_PREFIX)
         set(BREW_PREFIX ${BREW_PREFIX}/opt)
         set(ENV{PKG_CONFIG_PATH} "${BREW_PREFIX}/libffi/lib/pkgconfig:${BREW_PREFIX}/tcl-tk/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")

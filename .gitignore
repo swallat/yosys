@@ -35,3 +35,5 @@ cmake-build-debug
 /tests/sat/run-test.sh
 /yosys.pc
 /build-ubuntu/
+examples/basys3/example.edif
+examples/basys3/example_netlist.v

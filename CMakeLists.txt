@@ -272,7 +272,7 @@ if(ENABLE_ABC)
                             HG_TAG ${ABCREV}
                             BUILD_COMMAND make ${ABCMKARGS}
                             BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/abc
-                            INSTALL_COMMAND cmake -E echo "Skipping install step."
+                            INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step."
                             )
         externalproject_get_property(abc install_dir)
         add_custom_target(yosys-abc ALL

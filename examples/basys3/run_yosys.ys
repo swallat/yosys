@@ -1,2 +1,51 @@
 read_verilog example.v
-synth_xilinx -edif example.edif -top example
+
+read_verilog -lib +/xilinx/cells_sim.v
+read_verilog -lib +/xilinx/cells_xtra.v
+read_verilog -lib +/xilinx/brams_bb.v
+read_verilog -lib +/xilinx/drams_bb.v
+hierarchy -check -auto-top
+
+proc
+opt_expr
+opt_clean
+check
+opt
+wreduce
+alumacc
+share
+opt
+fsm -obfuscate -export
+opt -fast
+memory -nomap
+opt_clean
+
+
+memory_bram -rules +/xilinx/brams.txt
+techmap -map +/xilinx/brams_map.v
+
+memory_bram -rules +/xilinx/drams.txt
+techmap -map +/xilinx/drams_map.v
+
+opt -fast -full
+memory_map
+dffsr2dff
+dff2dffe
+opt -full
+techmap -map +/techmap.v -map +/xilinx/arith_map.v
+opt -fast
+
+
+abc -luts 2:2,3,6:5,10,20 -dff
+clean
+
+techmap -map +/xilinx/cells_map.v
+dffinit -ff FDRE Q INIT -ff FDCE Q INIT -ff FDPE Q INIT
+clean
+
+hierarchy -check
+stat
+check -noinit
+
+flatten
+write_verilog example_netlist.v

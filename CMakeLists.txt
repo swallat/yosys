@@ -258,26 +258,32 @@ if(ENABLE_ABC)
     if(NOT ABCURL)
         set(ABCURL "https://bitbucket.org/alanmi/abc")
     endif(NOT ABCURL)
-    set(ABCMKARGS "${ABCMKARGS} CC=\"${CMAKE_CXX_COMPILER}\" CXX=\"${CMAKE_CXX_COMPILER}\"")
     # set ABCEXTERNAL = <abc-command> to use an external ABC instance
     # Note: The in-tree ABC (yosys-abc) will not be installed when ABCEXTERNAL is set.
     #    set(ABCEXTERNAL "")
     if(NOT ABCEXTERNAL)
+                set(ABC_CMAKE_ARGS -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER})
+                if(CCACHE_FOUND)
+                    set(ABC_CMAKE_ARGS ${ABC_CMAKE_ARGS} -DCMAKE_C_COMPILER_LAUNCHER=${CCACHE_FOUND} -DCMAKE_CXX_COMPILER_LAUNCHER=${CCACHE_FOUND})
+                else()
+
+                endif(CCACHE_FOUND)
+                    message(STATUS "ABC_CMAKE_ARGS: ${ABC_CMAKE_ARGS}")
         include(ExternalProject)
         externalproject_add(abc
                             SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/abc
-                            BUILD_IN_SOURCE 0
                             UPDATE_COMMAND ""
                             HG_REPOSITORY ${ABCURL}
                             HG_TAG ${ABCREV}
+                            CMAKE_ARGS ${ABC_CMAKE_ARGS}
                             BUILD_COMMAND make ${ABCMKARGS}
-                            BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/abc
+                            BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/abc-build
                             INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step."
                             )
         externalproject_get_property(abc install_dir)
         add_custom_target(yosys-abc ALL
                           BYPRODUCTS yosys-abc${CMAKE_EXECUTABLE_SUFFIX}
-                          COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/abc/abc${CMAKE_EXECUTABLE_SUFFIX} ${CMAKE_CURRENT_BINARY_DIR}/yosys-abc${CMAKE_EXECUTABLE_SUFFIX}
+                          COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/abc-build/abc${CMAKE_EXECUTABLE_SUFFIX} ${CMAKE_CURRENT_BINARY_DIR}/yosys-abc${CMAKE_EXECUTABLE_SUFFIX}
                           COMMENT "Copy abc executable to yosis-abc${CMAKE_EXECUTABLE_SUFFIX}"
                           )
         add_dependencies(yosys-abc abc)

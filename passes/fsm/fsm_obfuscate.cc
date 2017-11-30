@@ -1,21 +1,6 @@
-/*
- *  yosys -- Yosys Open SYnthesis Suite
- *
- *  Copyright (C) 2012  Clifford Wolf <clifford@clifford.at>
- *
- *  Permission to use, copy, modify, and/or distribute this software for any
- *  purpose with or without fee is hereby granted, provided that the above
- *  copyright notice and this permission notice appear in all copies.
- *
- *  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- *  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- *  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
- *  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- *  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- *  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
- *  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
- */
+//
+// Created by Nils Albartus on 17.10.17.
+//
 
 #include "kernel/log.h"
 #include "kernel/register.h"
@@ -23,317 +8,220 @@
 #include "kernel/consteval.h"
 #include "kernel/celltypes.h"
 #include "fsmdata.h"
-#include <string.h>
+#include <cmath>
+#include <string>
+#include <errno.h>
+#include <random>
+#include <ctime>
 
 USING_YOSYS_NAMESPACE
 PRIVATE_NAMESPACE_BEGIN
 
-    static bool pattern_is_subset(const RTLIL::Const &super_pattern, const RTLIL::Const &sub_pattern)
-    {
-        log_assert(GetSize(super_pattern.bits) == GetSize(sub_pattern.bits));
-        for (int i = 0; i < GetSize(super_pattern.bits); i++)
-            if (sub_pattern.bits[i] == RTLIL::State::S0 || sub_pattern.bits[i] == RTLIL::State::S1) {
-                if (super_pattern.bits[i] == RTLIL::State::S0 || super_pattern.bits[i] == RTLIL::State::S1) {
-                    if (super_pattern.bits[i] != sub_pattern.bits[i])
-                        return false;
-                } else
-                    return false;
-            }
-        return true;
+    template<class InIt>
+    std::string print_range(InIt first, InIt last, char const* delim = "\n"){
+        std::stringstream string;
+        --last;
+        for(; first != last; ++first){
+            string << *first << delim;
+        }
+        string << *first;
+        return string.str();
     }
 
-    static void implement_pattern_cache(RTLIL::Module *module, std::map<RTLIL::Const, std::set<int>> &pattern_cache, std::set<int> &fullstate_cache, int num_states, RTLIL::Wire *state_onehot, RTLIL::SigSpec &ctrl_in, RTLIL::SigSpec output)
-    {
-        RTLIL::SigSpec cases_vector;
-
-        for (int in_state : fullstate_cache)
-            cases_vector.append(RTLIL::SigSpec(state_onehot, in_state));
-
-        for (auto &it : pattern_cache)
-        {
-            RTLIL::Const pattern = it.first;
-            RTLIL::SigSpec eq_sig_a, eq_sig_b, or_sig;
-
-            for (size_t j = 0; j < pattern.bits.size(); j++)
-                if (pattern.bits[j] == RTLIL::State::S0 || pattern.bits[j] == RTLIL::State::S1) {
-                    eq_sig_a.append(ctrl_in.extract(j, 1));
-                    eq_sig_b.append(RTLIL::SigSpec(pattern.bits[j]));
-                }
-
-            for (int in_state : it.second)
-                if (fullstate_cache.count(in_state) == 0)
-                    or_sig.append(RTLIL::SigSpec(state_onehot, in_state));
-
-            if (or_sig.size() == 0)
-                continue;
-
-            RTLIL::SigSpec and_sig;
-
-            if (eq_sig_a.size() > 0)
-            {
-                RTLIL::Wire *eq_wire = module->addWire(NEW_ID);
-                and_sig.append(RTLIL::SigSpec(eq_wire));
-
-                RTLIL::Cell *eq_cell = module->addCell(NEW_ID, "$eq");
-                eq_cell->setPort("\\A", eq_sig_a);
-                eq_cell->setPort("\\B", eq_sig_b);
-                eq_cell->setPort("\\Y", RTLIL::SigSpec(eq_wire));
-                eq_cell->parameters["\\A_SIGNED"] = RTLIL::Const(false);
-                eq_cell->parameters["\\B_SIGNED"] = RTLIL::Const(false);
-                eq_cell->parameters["\\A_WIDTH"] = RTLIL::Const(eq_sig_a.size());
-                eq_cell->parameters["\\B_WIDTH"] = RTLIL::Const(eq_sig_b.size());
-                eq_cell->parameters["\\Y_WIDTH"] = RTLIL::Const(1);
-            }
-
-            std::set<int> complete_in_state_cache = it.second;
-
-            for (auto &it2 : pattern_cache)
-                if (pattern_is_subset(pattern, it2.first))
-                    complete_in_state_cache.insert(it2.second.begin(), it2.second.end());
-
-            if (GetSize(complete_in_state_cache) < num_states)
-            {
-                if (or_sig.size() == 1)
-                {
-                    and_sig.append(or_sig);
-                }
-                else
-                {
-                    RTLIL::Wire *or_wire = module->addWire(NEW_ID);
-                    and_sig.append(RTLIL::SigSpec(or_wire));
-
-                    RTLIL::Cell *or_cell = module->addCell(NEW_ID, "$reduce_or");
-                    or_cell->setPort("\\A", or_sig);
-                    or_cell->setPort("\\Y", RTLIL::SigSpec(or_wire));
-                    or_cell->parameters["\\A_SIGNED"] = RTLIL::Const(false);
-                    or_cell->parameters["\\A_WIDTH"] = RTLIL::Const(or_sig.size());
-                    or_cell->parameters["\\Y_WIDTH"] = RTLIL::Const(1);
-                }
-            }
-
-            switch (and_sig.size())
-            {
-                case 2:
-                {
-                    RTLIL::Wire *and_wire = module->addWire(NEW_ID);
-                    cases_vector.append(RTLIL::SigSpec(and_wire));
-
-                    RTLIL::Cell *and_cell = module->addCell(NEW_ID, "$and");
-                    and_cell->setPort("\\A", and_sig.extract(0, 1));
-                    and_cell->setPort("\\B", and_sig.extract(1, 1));
-                    and_cell->setPort("\\Y", RTLIL::SigSpec(and_wire));
-                    and_cell->parameters["\\A_SIGNED"] = RTLIL::Const(false);
-                    and_cell->parameters["\\B_SIGNED"] = RTLIL::Const(false);
-                    and_cell->parameters["\\A_WIDTH"] = RTLIL::Const(1);
-                    and_cell->parameters["\\B_WIDTH"] = RTLIL::Const(1);
-                    and_cell->parameters["\\Y_WIDTH"] = RTLIL::Const(1);
-                    break;
-                }
-                case 1:
-                    cases_vector.append(and_sig);
-                    break;
-                case 0:
-                    cases_vector.append(RTLIL::SigSpec(1, 1));
-                    break;
-                default:
-                    log_abort();
-            }
-        }
-
-        if (cases_vector.size() > 1) {
-            RTLIL::Cell *or_cell = module->addCell(NEW_ID, "$reduce_or");
-            or_cell->setPort("\\A", cases_vector);
-            or_cell->setPort("\\Y", output);
-            or_cell->parameters["\\A_SIGNED"] = RTLIL::Const(false);
-            or_cell->parameters["\\A_WIDTH"] = RTLIL::Const(cases_vector.size());
-            or_cell->parameters["\\Y_WIDTH"] = RTLIL::Const(1);
-        } else if (cases_vector.size() == 1) {
-            module->connect(RTLIL::SigSig(output, cases_vector));
-        } else {
-            module->connect(RTLIL::SigSig(output, RTLIL::SigSpec(0, 1)));
-        }
-    }
-
-    static void map_fsm(RTLIL::Cell *fsm_cell, RTLIL::Module *module)
-    {
-        log("Mapping FSM `%s' from module `%s'.\n", fsm_cell->name.c_str(), module->name.c_str());
-
+    static void fsm_obfuscate(RTLIL::Cell *cell, RTLIL::Module *module, int num_of_obfuscated_states, RTLIL::Wire *harpoon_signal) {
+        // load fsm data
         FsmData fsm_data;
-        fsm_data.copy_from_cell(fsm_cell);
+        fsm_data.copy_from_cell(cell);
+        int number_of_original_states = fsm_data.state_table.size();
+        int number_of_total_states = fsm_data.state_table.size() + num_of_obfuscated_states;
+        fsm_data.state_bits = number_of_total_states;
 
-        RTLIL::SigSpec ctrl_in = fsm_cell->getPort("\\CTRL_IN");
-        RTLIL::SigSpec ctrl_out = fsm_cell->getPort("\\CTRL_OUT");
-
-        // create state register
-
-        //state wire going into "logic"
-        RTLIL::Wire *state_wire = module->addWire(module->uniquify(fsm_cell->parameters["\\NAME"].decode_string()), fsm_data.state_bits);
-        log("width of state_wire: %d\n", state_wire->width);
-        //next state going into "register"
-        RTLIL::Wire *next_state_wire = module->addWire(NEW_ID, fsm_data.state_bits);
-        log("width of next_state_wire: %d\n", next_state_wire->width);
-
-        //state register
-        RTLIL::Cell *state_dff = module->addCell(NEW_ID, "");
-        if (fsm_cell->getPort("\\ARST").is_fully_const()) {
-            state_dff->type = "$dff";
-        } else {
-            state_dff->type = "$adff";
-            state_dff->parameters["\\ARST_POLARITY"] = fsm_cell->parameters["\\ARST_POLARITY"];
-            state_dff->parameters["\\ARST_VALUE"] = fsm_data.state_table[fsm_data.reset_state];
-            for (auto &bit : state_dff->parameters["\\ARST_VALUE"].bits)
-                if (bit != RTLIL::State::S1)
-                    bit = RTLIL::State::S0;
-            state_dff->setPort("\\ARST", fsm_cell->getPort("\\ARST"));
-        }
-        state_dff->parameters["\\WIDTH"] = RTLIL::Const(fsm_data.state_bits); //size of register
-        state_dff->parameters["\\CLK_POLARITY"] = fsm_cell->parameters["\\CLK_POLARITY"];
-        log("clk_polarity: %s\n", fsm_cell->parameters["\\CLK_POLARITY"].as_string().c_str());
-        state_dff->setPort("\\CLK", fsm_cell->getPort("\\CLK"));
-        state_dff->setPort("\\D", RTLIL::SigSpec(next_state_wire)); //input
-        state_dff->setPort("\\Q", RTLIL::SigSpec(state_wire)); //output
-
-        // decode state register
-
-        bool encoding_is_onehot = true;
-
-        RTLIL::Wire *state_onehot = module->addWire(NEW_ID, fsm_data.state_table.size());
-
-        log("states: \n");
-
-        for (size_t i = 0; i < fsm_data.state_table.size(); i++)
+        // do recoding of previous states
+        int state_idx_counter = fsm_data.reset_state >= 0 ? 1 : 0;
+        for (int i = 0; i < fsm_data.state_table.size(); i++)
         {
-            RTLIL::Const state = fsm_data.state_table[i];
-            RTLIL::SigSpec sig_a, sig_b;
+            int state_idx = fsm_data.reset_state == i ? 0 : state_idx_counter++;
+            RTLIL::Const new_code;
+            new_code = RTLIL::Const(RTLIL::State::Sa, fsm_data.state_bits);
+            new_code.bits[state_idx] = RTLIL::State::S1;
 
-            log("    %d: %10s\n", i, log_signal(fsm_data.state_table[i], false));
-            for (size_t j = 0; j < state.bits.size(); j++)
-                if (state.bits[j] == RTLIL::State::S0 || state.bits[j] == RTLIL::State::S1) {
-                    sig_a.append(RTLIL::SigSpec(state_wire, j)); //wire and offset, width = 1
-                    sig_b.append(RTLIL::SigSpec(state.bits[j])); //only one bit, width = 1, different "constructor"
-                    log("    sig_a: %s, size: %d, state S%d\n", log_signal(sig_a), sig_a.size(), (sig_a == RTLIL::SigSpec(RTLIL::State::S1)));
-                    log("    sig_b: %s, size: %d, state S%d\n", log_signal(sig_b), sig_b.size(), (sig_b == RTLIL::SigSpec(RTLIL::State::S1)));
-                }
-            // why? i don't understand the purpose of these states...
-            if (sig_b == RTLIL::SigSpec(RTLIL::State::S1))
-            {
-                module->connect(RTLIL::SigSig(RTLIL::SigSpec(state_onehot, i), sig_a));
-            }
-            else
-            {
-                encoding_is_onehot = false;
+            fsm_data.state_table[i] = new_code;
+            log("\t%s\n", fsm_data.state_table[i].as_string().c_str());
 
-                RTLIL::Cell *eq_cell = module->addCell(NEW_ID, "$eq");
-                eq_cell->setPort("\\A", sig_a);
-                eq_cell->setPort("\\B", sig_b);
-                eq_cell->setPort("\\Y", RTLIL::SigSpec(state_onehot, i));
-                eq_cell->parameters["\\A_SIGNED"] = RTLIL::Const(false);
-                eq_cell->parameters["\\B_SIGNED"] = RTLIL::Const(false);
-                eq_cell->parameters["\\A_WIDTH"] = RTLIL::Const(sig_a.size());
-                eq_cell->parameters["\\B_WIDTH"] = RTLIL::Const(sig_b.size());
-                eq_cell->parameters["\\Y_WIDTH"] = RTLIL::Const(1);
-            }
         }
 
-        if (encoding_is_onehot)
-            state_wire->set_bool_attribute("\\onehot");
+        //add new obfuscated states
+        for (int i = fsm_data.state_table.size(); i < number_of_total_states; i++){
+            int state_idx = fsm_data.reset_state == i ? 0 : state_idx_counter++;
+            RTLIL::Const new_code;
+            new_code = RTLIL::Const(RTLIL::State::Sa, fsm_data.state_bits);
+            new_code.bits[state_idx] = RTLIL::State::S1;
 
-        // generate next_state signal
-
-        if (GetSize(fsm_data.state_table) == 1)
-        {
-            module->connect(next_state_wire, fsm_data.state_table.front());
+            fsm_data.state_table.push_back(new_code);
+            log("\t%s\n", fsm_data.state_table[i].as_string().c_str());
         }
-        else
-        {
-            RTLIL::Wire *next_state_onehot = module->addWire(NEW_ID, fsm_data.state_table.size());
 
-            for (size_t i = 0; i < fsm_data.state_table.size(); i++)
-            {
-                std::map<RTLIL::Const, std::set<int>> pattern_cache;
-                std::set<int> fullstate_cache;
 
-                for (size_t j = 0; j < fsm_data.state_table.size(); j++)
-                    fullstate_cache.insert(j);
 
-                for (auto &tr : fsm_data.transition_table) {
-                    if (tr.state_out == int(i))
-                        pattern_cache[tr.ctrl_in].insert(tr.state_in);
-                    else
-                        fullstate_cache.erase(tr.state_in);
+        // transitions
+        // add harpoon ctrl signal to ports
+        RTLIL::SigSpec sig_in = cell->getPort("\\CTRL_IN");
+        int ctrl_in_length_before_harpoon = sig_in.size();
+        sig_in.append(harpoon_signal);
+        cell->setPort("\\CTRL_IN", sig_in);
+
+        log("\n");
+        log("  Input signals:\n");
+        sig_in = cell->getPort("\\CTRL_IN");
+        for (int i = 0; i < GetSize(sig_in); i++)
+            log("  %3d: %s\n", i, log_signal(sig_in[i]));
+
+
+
+        int ctrl_in_with_harpoon_sig = ctrl_in_length_before_harpoon + harpoon_signal->width;
+        fsm_data.num_inputs = ctrl_in_with_harpoon_sig;
+
+
+        // recode of old transitions
+        for (int i = 0; i < fsm_data.transition_table.size(); i++){
+            FsmData::transition_t tr = fsm_data.transition_table[i];
+            for (int j = 0; j < harpoon_signal->width; j++){
+                tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::Sa);
+            }
+            fsm_data.transition_table[i] = tr;
+        }
+
+
+        // add random transitions
+        std::srand((int)std::time(0));
+
+        int number_of_harpoon_bits = harpoon_signal->width;
+        log("\tnumber_of_harpoon_bits: %d\n", number_of_harpoon_bits);
+
+        for (int i = number_of_original_states; i < number_of_total_states; i++){
+            log("\tstate: %d", i);
+            int random_number_of_transitions = (rand() % num_of_obfuscated_states) + 1;
+            log(" , number_of transitions: %d\n", random_number_of_transitions);
+            for (int j = 0; j < random_number_of_transitions; j++){
+                FsmData::transition_t tr;
+
+                // figuring out random jump between two states
+                int random_state_out;
+                do {
+                    random_state_out = (rand() % num_of_obfuscated_states) + number_of_original_states;
+                } while (random_state_out == i);
+
+                // original signal has to be don't care
+                for (int k = 0; k < ctrl_in_length_before_harpoon; k++){
+                    tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::Sa);
                 }
 
-                implement_pattern_cache(module, pattern_cache, fullstate_cache, fsm_data.state_table.size(), state_onehot, ctrl_in, RTLIL::SigSpec(next_state_onehot, i));
-            }
-
-            if (encoding_is_onehot)
-            {
-                RTLIL::SigSpec next_state_sig(RTLIL::State::Sm, next_state_wire->width);
-                for (size_t i = 0; i < fsm_data.state_table.size(); i++) {
-                    RTLIL::Const state = fsm_data.state_table[i];
-                    int bit_idx = -1;
-                    for (size_t j = 0; j < state.bits.size(); j++)
-                        if (state.bits[j] == RTLIL::State::S1)
-                            bit_idx = j;
-                    if (bit_idx >= 0)
-                        next_state_sig.replace(bit_idx, RTLIL::SigSpec(next_state_onehot, i));
-                }
-                log_assert(!next_state_sig.has_marked_bits());
-                module->connect(RTLIL::SigSig(next_state_wire, next_state_sig));
-            }
-            else
-            {
-                RTLIL::SigSpec sig_a(RTLIL::State::Sx, next_state_wire->width);
-                RTLIL::SigSpec sig_b, sig_s;
-
-                for (size_t i = 0; i < fsm_data.state_table.size(); i++) {
-                    RTLIL::Const state = fsm_data.state_table[i];
-                    if (int(i) == fsm_data.reset_state) {
-                        sig_a = RTLIL::SigSpec(state);
-                    } else {
-                        sig_b.append(RTLIL::SigSpec(state));
-                        sig_s.append(RTLIL::SigSpec(next_state_onehot, i));
+                // setting random ctrl_inputs
+                for (int k = ctrl_in_length_before_harpoon; k < ctrl_in_with_harpoon_sig; k++){
+                    int random_value = (rand() % 3);
+                    switch(random_value) {
+                        case 0: {
+                            tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::S0);
+                            break;
+                        }
+                        case 1: {
+                            tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::S1);
+                            break;
+                        }
+                        case 2: {
+                            tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::Sa);
+                            break;
+                        }
+                        default:
+                            break;
                     }
                 }
 
-                RTLIL::Cell *mux_cell = module->addCell(NEW_ID, "$pmux");
-                mux_cell->setPort("\\A", sig_a);
-                mux_cell->setPort("\\B", sig_b);
-                mux_cell->setPort("\\S", sig_s);
-                mux_cell->setPort("\\Y", RTLIL::SigSpec(next_state_wire));
-                mux_cell->parameters["\\WIDTH"] = RTLIL::Const(sig_a.size());
-                mux_cell->parameters["\\S_WIDTH"] = RTLIL::Const(sig_s.size());
+                tr.state_in = i;
+                tr.state_out = random_state_out;
+
+
+
+                for (int k = 0; k < fsm_data.num_outputs; k++){
+                    tr.ctrl_out.bits.push_back(RTLIL::State::Sa);
+                }
+
+                log("\ttransition: %d (%s) --> %d (%s)\n", i, log_signal(tr.ctrl_in), random_state_out, log_signal(tr.ctrl_out));
+
+                fsm_data.transition_table.push_back(tr);
             }
         }
 
-        // Generate ctrl_out signal
 
-        for (int i = 0; i < fsm_data.num_outputs; i++)
-        {
-            std::map<RTLIL::Const, std::set<int>> pattern_cache;
-            std::set<int> fullstate_cache;
+        // harpoon key
+        std::vector<int> harpoon_key;
+        std::vector<int>::iterator it;
+        int length_of_key = (rand() % num_of_obfuscated_states) + 1;
 
-            for (size_t j = 0; j < fsm_data.state_table.size(); j++)
-                fullstate_cache.insert(j);
 
-            for (auto &tr : fsm_data.transition_table) {
-                if (tr.ctrl_out.bits[i] == RTLIL::State::S1)
-                    pattern_cache[tr.ctrl_in].insert(tr.state_in);
-                else
-                    fullstate_cache.erase(tr.state_in);
+
+        // generate key
+        it = harpoon_key.begin();
+        for (int i = number_of_original_states; i < number_of_total_states; i++){
+            it = harpoon_key.insert ( it , i );
+        }
+        std::shuffle(harpoon_key.begin(), harpoon_key.end(), std::default_random_engine(std::random_device()()));
+
+        // shorten key
+        harpoon_key.erase (harpoon_key.begin()+length_of_key,harpoon_key.end());
+
+        log("\n");
+        log("\n\tharpoon key:\n");
+        log("\tlength_of_key: %d; harpoon_key: ", length_of_key);
+        for (int i : harpoon_key)
+            log("%d ", i);
+        log("\n");
+
+
+        for (int i = 0; i < harpoon_key.size(); i++){
+            FsmData::transition_t tr;
+            // original signal has to be don't care
+            for (int k = 0; k < ctrl_in_length_before_harpoon; k++){
+                tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::Sa);
             }
 
-            implement_pattern_cache(module, pattern_cache, fullstate_cache, fsm_data.state_table.size(), state_onehot, ctrl_in, ctrl_out.extract(i, 1));
+            // setting random ctrl_inputs
+            for (int k = ctrl_in_length_before_harpoon; k < ctrl_in_with_harpoon_sig; k++){
+                int random_value = (rand() % 2);
+                switch(random_value) {
+                    case 0: {
+                        tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::S0);
+                        break;
+                    }
+                    case 1: {
+                        tr.ctrl_in.bits.insert(tr.ctrl_in.bits.begin(), RTLIL::State::S1);
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            }
+
+            tr.state_in = harpoon_key[i];
+            if (i == harpoon_key.size() - 1)
+                tr.state_out = 0;
+            else
+                tr.state_out = harpoon_key[i + 1];
+
+
+
+            for (int k = 0; k < fsm_data.num_outputs; k++){
+                tr.ctrl_out.bits.push_back(RTLIL::State::Sa);
+            }
+
+            log("\ttransition: %d (%s) --> %d (%s)\n", tr.state_in, log_signal(tr.ctrl_in), tr.state_out, log_signal(tr.ctrl_out));
+
+            fsm_data.transition_table.push_back(tr);
         }
 
-        // Remove FSM cell
 
-        module->remove(fsm_cell);
-    }
-
-    static void fsm_obfuscate(RTLIL::Design *design, RTLIL::Module *module, RTLIL::Cell *cell, int num_of_obfuscated_states){
-        log("Obfuscating state machine from module '%s' and cell '%s'\n", module->name.c_str(), cell->name.c_str());
-        log("Adding %d new states to obfuscation\n", num_of_obfuscated_states);
+        // store fsm data
+        fsm_data.copy_to_cell(cell);
     }
 
     struct FsmObfuscatePass : public Pass {
@@ -352,17 +240,53 @@ PRIVATE_NAMESPACE_BEGIN
             log_header(design, "Executing FSM Obfuscation pass.\n");
             size_t argidx;
 
-            for (auto &mod_it : design->modules_) {
-                if (!design->selected(mod_it.second))
-                    continue;
-                std::vector<RTLIL::Cell*> fsm_cells;
-                //collect all fsm cells
-                for (auto &cell_it : mod_it.second->cells_)
-                    if (cell_it.second->type == "$fsm" && design->selected(mod_it.second, cell_it.second))
-                        fsm_cells.push_back(cell_it.second);
-                //run on all fsm cells
-                for (auto cell : fsm_cells)
-                    map_fsm(cell, mod_it.second);
+            for (const auto &mod_it : design->modules_){
+                RTLIL::Module *module = mod_it.second;
+                int num_of_obfuscated_states = 0;
+                int obfuscate_on = 0;
+
+                RTLIL::Wire *harpoon_signal = nullptr;
+                bool harpoon_signal_exists = false;
+                std::size_t found = false;
+                for (const auto &wire_it : module->wires_){
+                    found = std::string(wire_it.second->name.c_str()).find("harpoon");
+                    if (found != std::string::npos){
+                        harpoon_signal_exists = true;
+                        harpoon_signal = wire_it.second;
+                    }
+                }
+
+                for (const auto &cell_it : module->cells_) {
+
+                    RTLIL::Cell *cell = cell_it.second;
+                    if (cell_it.second->type == "$fsm" && design->selected(mod_it.second, cell_it.second)){
+
+                        if (harpoon_signal_exists){
+                            log("\tharpoon signal found: %s\n", harpoon_signal->name.c_str());
+                        }
+                        else{
+                            log("\tdid you define the harpoon signal in the design?\n");
+                        }
+
+                        if (cell->attributes.count("\\fsm_obfuscate_states") > 0){
+                            std::string attribute = cell->attributes.at("\\fsm_obfuscate_states").decode_string();
+                            num_of_obfuscated_states = std::stoi(attribute);
+                        }
+
+                        if (cell->attributes.count("\\fsm_obfuscate") > 0){
+                            std::string attribute = cell->attributes.at("\\fsm_obfuscate").decode_string();
+                            log("\tname: %s; fsm_obfuscate_attribute: %s\n", cell->name.c_str(), attribute.c_str());
+                            std::string true_str = "true";
+                            if ((attribute.compare("true") == 0) && (num_of_obfuscated_states > 0)){
+                                log("\texecuting fsm obfuscation path with following parameters:\n\tnum_of_states = %d\n", num_of_obfuscated_states);
+                                fsm_obfuscate(cell, module, num_of_obfuscated_states, harpoon_signal);
+                            } else
+                                log("\tcode annotations missing\n");
+
+                        }
+                    }
+                }
+
             }
         }
     } FsmObfuscatePass;

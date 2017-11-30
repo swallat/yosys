@@ -146,7 +146,7 @@ if(APPLE)
     find_program(macports port)
     if(NOT homebrew STREQUAL "homebrew-NOTFOUND")
         # homebrew search paths
-        execute_process(COMMAND brew --prefix OUTPUT_VARIABLE BREW_PREFIX)
+        execute_process(COMMAND ${homebrew} --prefix OUTPUT_VARIABLE BREW_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
         string(STRIP ${BREW_PREFIX} BREW_PREFIX)
         set(BREW_PREFIX ${BREW_PREFIX}/opt)
         set(ENV{PKG_CONFIG_PATH} "${BREW_PREFIX}/libffi/lib/pkgconfig:${BREW_PREFIX}/tcl-tk/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
@@ -272,7 +272,7 @@ if(ENABLE_ABC)
                             HG_TAG ${ABCREV}
                             BUILD_COMMAND make ${ABCMKARGS}
                             BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/abc
-                            INSTALL_COMMAND cmake -E echo "Skipping install step."
+                            INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skipping install step."
                             )
         externalproject_get_property(abc install_dir)
         add_custom_target(yosys-abc ALL

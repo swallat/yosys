@@ -41,6 +41,8 @@ struct FsmData
 			state_num_log2++;
 		state_num_log2 = max(state_num_log2, 1);
 
+        //log("state_table_size: %d\n", state_table.size());
+
 		cell->parameters["\\STATE_BITS"] = RTLIL::Const(state_bits);
 		cell->parameters["\\STATE_NUM"] = RTLIL::Const(state_table.size());
 		cell->parameters["\\STATE_NUM_LOG2"] = RTLIL::Const(state_num_log2);
@@ -73,6 +75,8 @@ struct FsmData
 			bits_table.insert(bits_table.end(), bits_state_out.begin(), bits_state_out.end());
 			bits_table.insert(bits_table.end(), bits_ctrl_in.begin(), bits_ctrl_in.end());
 			bits_table.insert(bits_table.end(), bits_state_in.begin(), bits_state_in.end());
+
+            //log("\t%s\n", log_signal(bits_table));
 		}
 	}
 

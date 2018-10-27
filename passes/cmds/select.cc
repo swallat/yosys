@@ -760,6 +760,9 @@ static void select_stmt(RTLIL::Design *design, std::string arg)
 	if (!design->selected_active_module.empty()) {
 		arg_mod = design->selected_active_module;
 		arg_memb = arg;
+	} else
+	if (GetSize(arg) >= 2 && arg[0] >= 'a' && arg[0] <= 'z' && arg[1] == ':') {
+		arg_mod = "*", arg_memb = arg;
 	} else {
 		size_t pos = arg.find('/');
 		if (pos == std::string::npos) {
@@ -947,7 +950,7 @@ PRIVATE_NAMESPACE_BEGIN
 
 struct SelectPass : public Pass {
 	SelectPass() : Pass("select", "modify and view the list of selected objects") { }
-	virtual void help()
+	void help() YS_OVERRIDE
 	{
 		//   |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
 		log("\n");
@@ -961,7 +964,7 @@ struct SelectPass : public Pass {
 		log("list of selected objects.\n");
 		log("\n");
 		log("Note that many commands support an optional [selection] argument that can be\n");
-		log("used to override the global selection for the command. The syntax of this\n");
+		log("used to YS_OVERRIDE the global selection for the command. The syntax of this\n");
 		log("optional argument is identical to the syntax of the <selection> argument\n");
 		log("described here.\n");
 		log("\n");
@@ -1164,7 +1167,7 @@ struct SelectPass : public Pass {
 		log("    select */t:SWITCH %%x:+[GATE] */t:SWITCH %%d\n");
 		log("\n");
 	}
-	virtual void execute(std::vector<std::string> args, RTLIL::Design *design)
+	void execute(std::vector<std::string> args, RTLIL::Design *design) YS_OVERRIDE
 	{
 		bool add_mode = false;
 		bool del_mode = false;
@@ -1263,6 +1266,7 @@ struct SelectPass : public Pass {
 				log_cmd_error("Option -read can not be combined with a selection expression.\n");
 
 			std::ifstream f(read_file);
+			yosys_input_files.insert(read_file);
 			if (f.fail())
 				log_error("Can't open '%s' for reading: %s\n", read_file.c_str(), strerror(errno));
 
@@ -1331,6 +1335,7 @@ struct SelectPass : public Pass {
 			FILE *f = NULL;
 			if (!write_file.empty()) {
 				f = fopen(write_file.c_str(), "w");
+				yosys_output_files.insert(write_file);
 				if (f == NULL)
 					log_error("Can't open '%s' for writing: %s\n", write_file.c_str(), strerror(errno));
 			}
@@ -1465,7 +1470,7 @@ struct SelectPass : public Pass {
 
 struct CdPass : public Pass {
 	CdPass() : Pass("cd", "a shortcut for 'select -module <name>'") { }
-	virtual void help()
+	void help() YS_OVERRIDE
 	{
 		//   |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
 		log("\n");
@@ -1491,7 +1496,7 @@ struct CdPass : public Pass {
 		log("This is just a shortcut for 'select -clear'.\n");
 		log("\n");
 	}
-	virtual void execute(std::vector<std::string> args, RTLIL::Design *design)
+	void execute(std::vector<std::string> args, RTLIL::Design *design) YS_OVERRIDE
 	{
 		if (args.size() != 1 && args.size() != 2)
 			log_cmd_error("Invalid number of arguments.\n");
@@ -1573,7 +1578,7 @@ static void log_matches(const char *title, Module *module, T list)
 
 struct LsPass : public Pass {
 	LsPass() : Pass("ls", "list modules or objects in modules") { }
-	virtual void help()
+	void help() YS_OVERRIDE
 	{
 		//   |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
 		log("\n");
@@ -1584,7 +1589,7 @@ struct LsPass : public Pass {
 		log("When an active module is selected, this prints a list of objects in the module.\n");
 		log("\n");
 	}
-	virtual void execute(std::vector<std::string> args, RTLIL::Design *design)
+	void execute(std::vector<std::string> args, RTLIL::Design *design) YS_OVERRIDE
 	{
 		size_t argidx = 1;
 		extra_args(args, argidx, design);

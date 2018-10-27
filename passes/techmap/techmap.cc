@@ -171,18 +171,15 @@ struct TechmapWorker
 		}
 
 		std::string orig_cell_name;
-		pool<string> extra_src_attrs;
+		pool<string> extra_src_attrs = cell->get_strpool_attribute("\\src");
 
-		if (!flatten_mode)
-		{
+		if (!flatten_mode) {
 			for (auto &it : tpl->cells_)
 				if (it.first == "\\_TECHMAP_REPLACE_") {
 					orig_cell_name = cell->name.str();
 					module->rename(cell, stringf("$techmap%d", autoidx++) + cell->name.str());
 					break;
 				}
-
-			extra_src_attrs = cell->get_strpool_attribute("\\src");
 		}
 
 		dict<IdString, IdString> memory_renames;
@@ -339,8 +336,6 @@ struct TechmapWorker
 
 			RTLIL::Cell *c = module->addCell(c_name, it.second);
 			design->select(module, c);
-
-			c->set_src_attribute(cell->get_src_attribute());
 
 			if (!flatten_mode && c->type.substr(0, 2) == "\\$")
 				c->type = c->type.substr(1);
@@ -896,7 +891,7 @@ struct TechmapWorker
 
 struct TechmapPass : public Pass {
 	TechmapPass() : Pass("techmap", "generic technology mapper") { }
-	virtual void help()
+	void help() YS_OVERRIDE
 	{
 		//   |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
 		log("\n");
@@ -938,7 +933,7 @@ struct TechmapPass : public Pass {
 		log("    -D <define>, -I <incdir>\n");
 		log("        this options are passed as-is to the Verilog frontend for loading the\n");
 		log("        map file. Note that the Verilog frontend is also called with the\n");
-		log("        '-ignore_redef' option set.\n");
+		log("        '-nooverwrite' option set.\n");
 		log("\n");
 		log("When a module in the map file has the 'techmap_celltype' attribute set, it will\n");
 		log("match cells with a type that match the text value of this attribute. Otherwise\n");
@@ -1027,7 +1022,7 @@ struct TechmapPass : public Pass {
 		log("essentially techmap but using the design itself as map library).\n");
 		log("\n");
 	}
-	virtual void execute(std::vector<std::string> args, RTLIL::Design *design)
+	void execute(std::vector<std::string> args, RTLIL::Design *design) YS_OVERRIDE
 	{
 		log_header(design, "Executing TECHMAP pass (map to technology primitives).\n");
 		log_push();
@@ -1036,7 +1031,7 @@ struct TechmapPass : public Pass {
 		simplemap_get_mappers(worker.simplemap_mappers);
 
 		std::vector<std::string> map_files;
-		std::string verilog_frontend = "verilog -ignore_redef";
+		std::string verilog_frontend = "verilog -nooverwrite";
 		int max_iter = -1;
 
 		size_t argidx;
@@ -1095,6 +1090,7 @@ struct TechmapPass : public Pass {
 					std::ifstream f;
 					rewrite_filename(fn);
 					f.open(fn.c_str());
+					yosys_input_files.insert(fn);
 					if (f.fail())
 						log_cmd_error("Can't open map file `%s'\n", fn.c_str());
 					Frontend::frontend_call(map, &f, fn, (fn.size() > 3 && fn.substr(fn.size()-3) == ".il") ? "ilang" : verilog_frontend);
@@ -1145,7 +1141,7 @@ struct TechmapPass : public Pass {
 
 struct FlattenPass : public Pass {
 	FlattenPass() : Pass("flatten", "flatten design") { }
-	virtual void help()
+	void help() YS_OVERRIDE
 	{
 		//   |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
 		log("\n");
@@ -1159,7 +1155,7 @@ struct FlattenPass : public Pass {
 		log("flattened by this command.\n");
 		log("\n");
 	}
-	virtual void execute(std::vector<std::string> args, RTLIL::Design *design)
+	void execute(std::vector<std::string> args, RTLIL::Design *design) YS_OVERRIDE
 	{
 		log_header(design, "Executing FLATTEN pass (flatten design).\n");
 		log_push();

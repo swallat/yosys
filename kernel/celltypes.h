@@ -20,7 +20,7 @@
 #ifndef CELLTYPES_H
 #define CELLTYPES_H
 
-#include <kernel/yosys.h>
+#include "kernel/yosys.h"
 
 YOSYS_NAMESPACE_BEGIN
 
@@ -122,6 +122,8 @@ struct CellTypes
 		setup_type("$initstate", pool<RTLIL::IdString>(), {Y}, true);
 		setup_type("$anyconst", pool<RTLIL::IdString>(), {Y}, true);
 		setup_type("$anyseq", pool<RTLIL::IdString>(), {Y}, true);
+		setup_type("$allconst", pool<RTLIL::IdString>(), {Y}, true);
+		setup_type("$allseq", pool<RTLIL::IdString>(), {Y}, true);
 		setup_type("$equiv", {A, B}, {Y}, true);
 	}
 
@@ -155,7 +157,7 @@ struct CellTypes
 		IdString A = "\\A", B = "\\B", C = "\\C", D = "\\D";
 		IdString E = "\\E", F = "\\F", G = "\\G", H = "\\H";
 		IdString I = "\\I", J = "\\J", K = "\\K", L = "\\L";
-		IdString M = "\\I", N = "\\N", O = "\\O", P = "\\P";
+		IdString M = "\\M", N = "\\N", O = "\\O", P = "\\P";
 		IdString S = "\\S", T = "\\T", U = "\\U", V = "\\V";
 		IdString Y = "\\Y";
 

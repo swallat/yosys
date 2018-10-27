@@ -91,9 +91,16 @@ void rmunused_module_cells(Module *module, bool verbose)
 		Cell *cell = it.second;
 		for (auto &it2 : cell->connections()) {
 			if (!ct_all.cell_known(cell->type) || ct_all.cell_output(cell->type, it2.first))
-				for (auto bit : sigmap(it2.second))
+				for (auto raw_bit : it2.second) {
+					if (raw_bit.wire == nullptr)
+						continue;
+					auto bit = sigmap(raw_bit);
+					if (bit.wire == nullptr)
+						log_warning("Driver-driver conflict for %s between cell %s.%s and constant %s in %s: Resolved using constant.\n",
+								log_signal(raw_bit), log_id(cell), log_id(it2.first), log_signal(bit), log_id(module));
 					if (bit.wire != nullptr)
 						wire2driver[bit].insert(cell);
+				}
 		}
 		if (keep_cache.query(cell))
 			queue.insert(cell);
@@ -435,7 +442,7 @@ void rmunused_module(RTLIL::Module *module, bool purge_mode, bool verbose, bool 
 
 struct OptCleanPass : public Pass {
 	OptCleanPass() : Pass("opt_clean", "remove unused cells and wires") { }
-	virtual void help()
+	void help() YS_OVERRIDE
 	{
 		//   |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
 		log("\n");
@@ -452,7 +459,7 @@ struct OptCleanPass : public Pass {
 		log("        also remove internal nets if they have a public name\n");
 		log("\n");
 	}
-	virtual void execute(std::vector<std::string> args, RTLIL::Design *design)
+	void execute(std::vector<std::string> args, RTLIL::Design *design) YS_OVERRIDE
 	{
 		bool purge_mode = false;
 
@@ -498,7 +505,7 @@ struct OptCleanPass : public Pass {
 
 struct CleanPass : public Pass {
 	CleanPass() : Pass("clean", "remove unused cells and wires") { }
-	virtual void help()
+	void help() YS_OVERRIDE
 	{
 		//   |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
 		log("\n");
@@ -513,7 +520,7 @@ struct CleanPass : public Pass {
 		log("in -purge mode between the commands.\n");
 		log("\n");
 	}
-	virtual void execute(std::vector<std::string> args, RTLIL::Design *design)
+	void execute(std::vector<std::string> args, RTLIL::Design *design) YS_OVERRIDE
 	{
 		bool purge_mode = false;
 

@@ -1,4 +1,4 @@
-/*
+/* -*- c++ -*-
  *  yosys -- Yosys Open SYnthesis Suite
  *
  *  Copyright (C) 2012  Clifford Wolf <clifford@clifford.at>
@@ -304,6 +304,9 @@ void run_frontend(std::string filename, std::string command, std::string *backen
 void run_frontend(std::string filename, std::string command, RTLIL::Design *design = nullptr);
 void run_backend(std::string filename, std::string command, RTLIL::Design *design = nullptr);
 void shell(RTLIL::Design *design);
+
+// journal of all input and output files read (for "yosys -E")
+extern std::set<std::string> yosys_input_files, yosys_output_files;
 
 // from kernel/version_*.o (cc source generated from Makefile)
 extern const char *yosys_version_str;

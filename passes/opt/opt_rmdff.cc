@@ -154,6 +154,9 @@ bool handle_dffsr(RTLIL::Module *mod, RTLIL::Cell *cell)
 	if (used_pol_set && used_pol_clr && pol_set != pol_clr)
 		return did_something;
 
+	if (cell->type == "$dlatchsr")
+		return did_something;
+
 	State unified_pol = used_pol_set ? pol_set : pol_clr;
 
 	if (cell->type == "$dffsr")
@@ -396,7 +399,7 @@ delete_dff:
 
 struct OptRmdffPass : public Pass {
 	OptRmdffPass() : Pass("opt_rmdff", "remove DFFs with constant inputs") { }
-	virtual void help()
+	void help() YS_OVERRIDE
 	{
 		//   |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
 		log("\n");
@@ -406,7 +409,7 @@ struct OptRmdffPass : public Pass {
 		log("a constant driver.\n");
 		log("\n");
 	}
-	virtual void execute(std::vector<std::string> args, RTLIL::Design *design)
+	void execute(std::vector<std::string> args, RTLIL::Design *design) YS_OVERRIDE
 	{
 		int total_count = 0, total_initdrv = 0;
 		log_header(design, "Executing OPT_RMDFF pass (remove dff with constant values).\n");

@@ -1,6 +1,6 @@
 
-`define SB_DFF_REG reg Q = 0;
-// `define SB_DFF_REG reg Q;
+`define SB_DFF_REG reg Q = 0
+// `define SB_DFF_REG reg Q
 
 // SiliconBlue IO Cells
 
@@ -132,21 +132,18 @@ endmodule
 
 // Positive Edge SiliconBlue FF Cells
 
-module SB_DFF (output Q, input C, D);
-	`SB_DFF_REG
+module SB_DFF (output `SB_DFF_REG, input C, D);
 	always @(posedge C)
 		Q <= D;
 endmodule
 
-module SB_DFFE (output Q, input C, E, D);
-	`SB_DFF_REG
+module SB_DFFE (output `SB_DFF_REG, input C, E, D);
 	always @(posedge C)
 		if (E)
 			Q <= D;
 endmodule
 
-module SB_DFFSR (output Q, input C, R, D);
-	`SB_DFF_REG
+module SB_DFFSR (output `SB_DFF_REG, input C, R, D);
 	always @(posedge C)
 		if (R)
 			Q <= 0;
@@ -154,8 +151,7 @@ module SB_DFFSR (output Q, input C, R, D);
 			Q <= D;
 endmodule
 
-module SB_DFFR (output Q, input C, R, D);
-	`SB_DFF_REG
+module SB_DFFR (output `SB_DFF_REG, input C, R, D);
 	always @(posedge C, posedge R)
 		if (R)
 			Q <= 0;
@@ -163,8 +159,7 @@ module SB_DFFR (output Q, input C, R, D);
 			Q <= D;
 endmodule
 
-module SB_DFFSS (output Q, input C, S, D);
-	`SB_DFF_REG
+module SB_DFFSS (output `SB_DFF_REG, input C, S, D);
 	always @(posedge C)
 		if (S)
 			Q <= 1;
@@ -172,8 +167,7 @@ module SB_DFFSS (output Q, input C, S, D);
 			Q <= D;
 endmodule
 
-module SB_DFFS (output Q, input C, S, D);
-	`SB_DFF_REG
+module SB_DFFS (output `SB_DFF_REG, input C, S, D);
 	always @(posedge C, posedge S)
 		if (S)
 			Q <= 1;
@@ -181,8 +175,7 @@ module SB_DFFS (output Q, input C, S, D);
 			Q <= D;
 endmodule
 
-module SB_DFFESR (output Q, input C, E, R, D);
-	`SB_DFF_REG
+module SB_DFFESR (output `SB_DFF_REG, input C, E, R, D);
 	always @(posedge C)
 		if (E) begin
 			if (R)
@@ -192,8 +185,7 @@ module SB_DFFESR (output Q, input C, E, R, D);
 		end
 endmodule
 
-module SB_DFFER (output Q, input C, E, R, D);
-	`SB_DFF_REG
+module SB_DFFER (output `SB_DFF_REG, input C, E, R, D);
 	always @(posedge C, posedge R)
 		if (R)
 			Q <= 0;
@@ -201,8 +193,7 @@ module SB_DFFER (output Q, input C, E, R, D);
 			Q <= D;
 endmodule
 
-module SB_DFFESS (output Q, input C, E, S, D);
-	`SB_DFF_REG
+module SB_DFFESS (output `SB_DFF_REG, input C, E, S, D);
 	always @(posedge C)
 		if (E) begin
 			if (S)
@@ -212,8 +203,7 @@ module SB_DFFESS (output Q, input C, E, S, D);
 		end
 endmodule
 
-module SB_DFFES (output Q, input C, E, S, D);
-	`SB_DFF_REG
+module SB_DFFES (output `SB_DFF_REG, input C, E, S, D);
 	always @(posedge C, posedge S)
 		if (S)
 			Q <= 1;
@@ -223,21 +213,18 @@ endmodule
 
 // Negative Edge SiliconBlue FF Cells
 
-module SB_DFFN (output Q, input C, D);
-	`SB_DFF_REG
+module SB_DFFN (output `SB_DFF_REG, input C, D);
 	always @(negedge C)
 		Q <= D;
 endmodule
 
-module SB_DFFNE (output Q, input C, E, D);
-	`SB_DFF_REG
+module SB_DFFNE (output `SB_DFF_REG, input C, E, D);
 	always @(negedge C)
 		if (E)
 			Q <= D;
 endmodule
 
-module SB_DFFNSR (output Q, input C, R, D);
-	`SB_DFF_REG
+module SB_DFFNSR (output `SB_DFF_REG, input C, R, D);
 	always @(negedge C)
 		if (R)
 			Q <= 0;
@@ -245,8 +232,7 @@ module SB_DFFNSR (output Q, input C, R, D);
 			Q <= D;
 endmodule
 
-module SB_DFFNR (output Q, input C, R, D);
-	`SB_DFF_REG
+module SB_DFFNR (output `SB_DFF_REG, input C, R, D);
 	always @(negedge C, posedge R)
 		if (R)
 			Q <= 0;
@@ -254,8 +240,7 @@ module SB_DFFNR (output Q, input C, R, D);
 			Q <= D;
 endmodule
 
-module SB_DFFNSS (output Q, input C, S, D);
-	`SB_DFF_REG
+module SB_DFFNSS (output `SB_DFF_REG, input C, S, D);
 	always @(negedge C)
 		if (S)
 			Q <= 1;
@@ -263,8 +248,7 @@ module SB_DFFNSS (output Q, input C, S, D);
 			Q <= D;
 endmodule
 
-module SB_DFFNS (output Q, input C, S, D);
-	`SB_DFF_REG
+module SB_DFFNS (output `SB_DFF_REG, input C, S, D);
 	always @(negedge C, posedge S)
 		if (S)
 			Q <= 1;
@@ -272,8 +256,7 @@ module SB_DFFNS (output Q, input C, S, D);
 			Q <= D;
 endmodule
 
-module SB_DFFNESR (output Q, input C, E, R, D);
-	`SB_DFF_REG
+module SB_DFFNESR (output `SB_DFF_REG, input C, E, R, D);
 	always @(negedge C)
 		if (E) begin
 			if (R)
@@ -283,8 +266,7 @@ module SB_DFFNESR (output Q, input C, E, R, D);
 		end
 endmodule
 
-module SB_DFFNER (output Q, input C, E, R, D);
-	`SB_DFF_REG
+module SB_DFFNER (output `SB_DFF_REG, input C, E, R, D);
 	always @(negedge C, posedge R)
 		if (R)
 			Q <= 0;
@@ -292,8 +274,7 @@ module SB_DFFNER (output Q, input C, E, R, D);
 			Q <= D;
 endmodule
 
-module SB_DFFNESS (output Q, input C, E, S, D);
-	`SB_DFF_REG
+module SB_DFFNESS (output `SB_DFF_REG, input C, E, S, D);
 	always @(negedge C)
 		if (E) begin
 			if (S)
@@ -303,8 +284,7 @@ module SB_DFFNESS (output Q, input C, E, S, D);
 		end
 endmodule
 
-module SB_DFFNES (output Q, input C, E, S, D);
-	`SB_DFF_REG
+module SB_DFFNES (output `SB_DFF_REG, input C, E, S, D);
 	always @(negedge C, posedge S)
 		if (S)
 			Q <= 1;
@@ -677,7 +657,12 @@ module ICESTORM_LC (
 	parameter [0:0] SET_NORESET  = 0;
 	parameter [0:0] ASYNC_SR     = 0;
 
-	wire COUT = CARRY_ENABLE ? (I1 && I2) || ((I1 || I2) && CIN) : 1'bx;
+	parameter [0:0] CIN_CONST    = 0;
+	parameter [0:0] CIN_SET      = 0;
+
+	wire mux_cin = CIN_CONST ? CIN_SET : CIN;
+
+	assign COUT = CARRY_ENABLE ? (I1 && I2) || ((I1 || I2) && mux_cin) : 1'bx;
 
 	wire [7:0] lut_s3 = I3 ? LUT_INIT[15:8] : LUT_INIT[7:0];
 	wire [3:0] lut_s2 = I2 ?   lut_s3[ 7:4] :   lut_s3[3:0];
@@ -912,7 +897,7 @@ module SB_MAC16 (
 	output CO,
 	output ACCUMCO,
 	output SIGNEXTOUT
-); 
+);
 parameter NEG_TRIGGER = 1'b0;
 parameter C_REG = 1'b0;
 parameter A_REG = 1'b0;
@@ -935,19 +920,40 @@ parameter A_SIGNED = 1'b0;
 parameter B_SIGNED = 1'b0;
 endmodule
 
-(* blackbox *)
-module SB_SPRAM256KA(
+module SB_SPRAM256KA (
 	input [13:0] ADDRESS,
 	input [15:0] DATAIN,
 	input [3:0] MASKWREN,
-	input WREN,
-	input CHIPSELECT,
-	input CLOCK,
-	input STANDBY,
-	input SLEEP,
-	input POWEROFF,
-	output [15:0] DATAOUT
+	input WREN, CHIPSELECT, CLOCK, STANDBY, SLEEP, POWEROFF,
+	output reg [15:0] DATAOUT
 );
+`ifndef BLACKBOX
+	reg [15:0] mem [0:16383];
+	wire off = SLEEP || !POWEROFF;
+	integer i;
+
+	always @(negedge POWEROFF) begin
+		for (i = 0; i <= 16383; i = i+1)
+			mem[i] = 'bx;
+	end
+
+	always @(posedge CLOCK, posedge off) begin
+		if (off) begin
+			DATAOUT <= 0;
+		end else
+		if (CHIPSELECT && !STANDBY && !WREN) begin
+			DATAOUT <= mem[ADDRESS];
+		end else begin
+			if (CHIPSELECT && !STANDBY && WREN) begin
+				if (MASKWREN[0]) mem[ADDRESS][ 3: 0] = DATAIN[ 3: 0];
+				if (MASKWREN[1]) mem[ADDRESS][ 7: 4] = DATAIN[ 7: 4];
+				if (MASKWREN[2]) mem[ADDRESS][11: 8] = DATAIN[11: 8];
+				if (MASKWREN[3]) mem[ADDRESS][15:12] = DATAIN[15:12];
+			end
+			DATAOUT <= 'bx;
+		end
+	end
+`endif
 endmodule
 
 (* blackbox *)
@@ -1030,7 +1036,7 @@ endmodule
 (* blackbox *)
 module SB_SPI (
 	input  SBCLKI,
-	input  SBRWI,				   
+	input  SBRWI,
 	input  SBSTBI,
 	input  SBADRI7,
 	input  SBADRI6,
@@ -1125,7 +1131,7 @@ module SB_IO_I3C (
 	input  D_OUT_1,
 	output D_IN_0,
 	output D_IN_1,
-	input  PU_ENB, 
+	input  PU_ENB,
 	input  WEAK_PU_ENB
 );
 	parameter [5:0] PIN_TYPE = 6'b000000;
@@ -1193,7 +1199,7 @@ module SB_IO_OD (
 	input  DOUT1,
 	input  DOUT0,
 	output DIN1,
-	output DIN0,
+	output DIN0
 );
 	parameter [5:0] PIN_TYPE = 6'b000000;
 	parameter [0:0] NEG_TRIGGER = 1'b0;
@@ -1205,45 +1211,44 @@ module SB_IO_OD (
 	reg outena_q;
 
 	generate if (!NEG_TRIGGER) begin
-		always @(posedge INPUT_CLK)  if (CLOCK_ENABLE) din_q_0  <= PACKAGE_PIN;
-		always @(negedge INPUT_CLK)  if (CLOCK_ENABLE) din_q_1  <= PACKAGE_PIN;
-		always @(posedge OUTPUT_CLK) if (CLOCK_ENABLE) dout_q_0 <= D_OUT_0;
-		always @(negedge OUTPUT_CLK) if (CLOCK_ENABLE) dout_q_1 <= D_OUT_1;
-		always @(posedge OUTPUT_CLK) if (CLOCK_ENABLE) outena_q <= OUTPUT_ENABLE;
+		always @(posedge INPUTCLK)  if (CLOCKENABLE) din_q_0  <= PACKAGEPIN;
+		always @(negedge INPUTCLK)  if (CLOCKENABLE) din_q_1  <= PACKAGEPIN;
+		always @(posedge OUTPUTCLK) if (CLOCKENABLE) dout_q_0 <= DOUT0;
+		always @(negedge OUTPUTCLK) if (CLOCKENABLE) dout_q_1 <= DOUT1;
+		always @(posedge OUTPUTCLK) if (CLOCKENABLE) outena_q <= OUTPUTENABLE;
 	end else begin
-		always @(negedge INPUT_CLK)  if (CLOCK_ENABLE) din_q_0  <= PACKAGE_PIN;
-		always @(posedge INPUT_CLK)  if (CLOCK_ENABLE) din_q_1  <= PACKAGE_PIN;
-		always @(negedge OUTPUT_CLK) if (CLOCK_ENABLE) dout_q_0 <= D_OUT_0;
-		always @(posedge OUTPUT_CLK) if (CLOCK_ENABLE) dout_q_1 <= D_OUT_1;
-		always @(negedge OUTPUT_CLK) if (CLOCK_ENABLE) outena_q <= OUTPUT_ENABLE;
+		always @(negedge INPUTCLK)  if (CLOCKENABLE) din_q_0  <= PACKAGEPIN;
+		always @(posedge INPUTCLK)  if (CLOCKENABLE) din_q_1  <= PACKAGEPIN;
+		always @(negedge OUTPUTCLK) if (CLOCKENABLE) dout_q_0 <= DOUT0;
+		always @(posedge OUTPUTCLK) if (CLOCKENABLE) dout_q_1 <= DOUT1;
+		always @(negedge OUTPUTCLK) if (CLOCKENABLE) outena_q <= OUTPUTENABLE;
 	end endgenerate
 
 	always @* begin
-		if (!PIN_TYPE[1] || !LATCH_INPUT_VALUE)
-			din_0 = PIN_TYPE[0] ? PACKAGE_PIN : din_q_0;
+		if (!PIN_TYPE[1] || !LATCHINPUTVALUE)
+			din_0 = PIN_TYPE[0] ? PACKAGEPIN : din_q_0;
 		din_1 = din_q_1;
 	end
 
 	// work around simulation glitches on dout in DDR mode
 	reg outclk_delayed_1;
 	reg outclk_delayed_2;
-	always @* outclk_delayed_1 <= OUTPUT_CLK;
+	always @* outclk_delayed_1 <= OUTPUTCLK;
 	always @* outclk_delayed_2 <= outclk_delayed_1;
 
 	always @* begin
 		if (PIN_TYPE[3])
-			dout = PIN_TYPE[2] ? !dout_q_0 : D_OUT_0;
+			dout = PIN_TYPE[2] ? !dout_q_0 : DOUT0;
 		else
 			dout = (outclk_delayed_2 ^ NEG_TRIGGER) || PIN_TYPE[2] ? dout_q_0 : dout_q_1;
 	end
 
-	assign D_IN_0 = din_0, D_IN_1 = din_1;
+	assign DIN0 = din_0, DIN1 = din_1;
 
 	generate
-		if (PIN_TYPE[5:4] == 2'b01) assign PACKAGE_PIN = dout ? 1'bz : 1'b0;
-		if (PIN_TYPE[5:4] == 2'b10) assign PACKAGE_PIN = OUTPUT_ENABLE ? (dout ? 1'bz : 1'b0) : 1'bz;
-		if (PIN_TYPE[5:4] == 2'b11) assign PACKAGE_PIN = outena_q ? (dout ? 1'bz : 1'b0) : 1'bz;
+		if (PIN_TYPE[5:4] == 2'b01) assign PACKAGEPIN = dout ? 1'bz : 1'b0;
+		if (PIN_TYPE[5:4] == 2'b10) assign PACKAGEPIN = OUTPUTENABLE ? (dout ? 1'bz : 1'b0) : 1'bz;
+		if (PIN_TYPE[5:4] == 2'b11) assign PACKAGEPIN = outena_q ? (dout ? 1'bz : 1'b0) : 1'bz;
 	endgenerate
 `endif
 endmodule
-

@@ -1,7 +1,7 @@
 ```
 yosys -- Yosys Open SYnthesis Suite
 
-Copyright (C) 2012 - 2017  Clifford Wolf <clifford@clifford.at>
+Copyright (C) 2012 - 2018  Clifford Wolf <clifford@clifford.at>
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -52,14 +52,26 @@ For example on Ubuntu Linux 16.04 LTS the following commands will install all
 prerequisites for building yosys:
 
 	$ sudo apt-get install build-essential clang bison flex \
-		libreadline-dev gawk tcl-dev libffi-dev git mercurial \
+		libreadline-dev gawk tcl-dev libffi-dev git \
 		graphviz xdot pkg-config python3
 
 Similarily, on Mac OS X MacPorts or Homebrew can be used to install dependencies:
 
 	$ brew tap Homebrew/bundle && brew bundle
 	$ sudo port install bison flex readline gawk libffi \
-		git mercurial graphviz pkgconfig python36
+		git graphviz pkgconfig python36
+
+On FreeBSD use the following command to install all prerequisites:
+
+	# pkg install bison flex readline gawk libffi\
+		git graphviz pkgconfig python3 python36 tcl-wrapper
+
+On FreeBSD system use gmake instead of make. To run tests use:
+    % MAKE=gmake CC=cc gmake test
+
+For Cygwin use the following command to install all prerequisites, or select these additional packages:
+
+	setup-x86_64.exe -q --packages=bison,flex,gcc-core,gcc-g++,git,libffi-devel,libreadline-devel,make,pkg-config,python3,tcl-devel
 
 There are also pre-compiled Yosys binary packages for Ubuntu and Win32 as well
 as a source distribution for Visual Studio. Visit the Yosys download page for
@@ -381,26 +393,38 @@ Verilog Attributes and non-standard features
 Non-standard or SystemVerilog features for formal verification
 ==============================================================
 
-- Support for ``assert``, ``assume``, ``restrict``, and ``cover'' is enabled
+- Support for ``assert``, ``assume``, ``restrict``, and ``cover`` is enabled
   when ``read_verilog`` is called with ``-formal``.
 
 - The system task ``$initstate`` evaluates to 1 in the initial state and
   to 0 otherwise.
 
-- The system task ``$anyconst`` evaluates to any constant value. This is
+- The system function ``$anyconst`` evaluates to any constant value. This is
   equivalent to declaring a reg as ``rand const``, but also works outside
   of checkers. (Yosys also supports ``rand const`` outside checkers.)
 
-- The system task ``$anyseq`` evaluates to any value, possibly a different
+- The system function ``$anyseq`` evaluates to any value, possibly a different
   value in each cycle. This is equivalent to declaring a reg as ``rand``,
   but also works outside of checkers. (Yosys also supports ``rand``
   variables outside checkers.)
+
+- The system functions ``$allconst`` and ``$allseq`` can be used to construct
+  formal exist-forall problems. Assumptions only hold if the trace satisfies
+  the assumtion for all ``$allconst/$allseq`` values. For assertions and cover
+  statements it is sufficient if just one ``$allconst/$allseq`` value triggers
+  the property (similar to ``$anyconst/$anyseq``).
+
+- Wires/registers decalred using the ``anyconst/anyseq/allconst/allseq`` attribute
+  (for example ``(* anyconst *) reg [7:0] foobar;``) will behave as if driven
+  by a ``$anyconst/$anyseq/$allconst/$allseq`` function.
 
 - The SystemVerilog tasks ``$past``, ``$stable``, ``$rose`` and ``$fell`` are
   supported in any clocked block.
 
 - The syntax ``@($global_clock)`` can be used to create FFs that have no
-  explicit clock input ($ff cells).
+  explicit clock input ($ff cells). The same can be achieved by using
+  ``@(posedge <netname>)`` or ``@(negedge <netname>)`` when ``<netname>``
+  is marked with the ``(* gclk *)`` Verilog attribute.
 
 
 Supported features from SystemVerilog
@@ -427,6 +451,9 @@ from SystemVerilog:
 - SystemVerilog packages are supported. Once a SystemVerilog file is read
   into a design with ``read_verilog``, all its packages are available to
   SystemVerilog files being read into the same design afterwards.
+
+- SystemVerilog interfaces (SVIs) are supported. Modports for specifying whether
+  ports are inputs or outputs are supported.
 
 
 Building the documentation

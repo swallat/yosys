@@ -388,7 +388,7 @@ void dump_wire(std::ostream &f, std::string indent, RTLIL::Wire *wire)
 void dump_memory(std::ostream &f, std::string indent, RTLIL::Memory *memory)
 {
 	dump_attributes(f, indent, memory->attributes);
-	f << stringf("%s" "reg [%d:0] %s [%d:0];\n", indent.c_str(), memory->width-1, id(memory->name).c_str(), memory->size-1);
+	f << stringf("%s" "reg [%d:0] %s [%d:%d];\n", indent.c_str(), memory->width-1, id(memory->name).c_str(), memory->size+memory->start_offset-1, memory->start_offset);
 }
 
 void dump_cell_expr_port(std::ostream &f, RTLIL::Cell *cell, std::string port, bool gen_signed = true)
@@ -779,6 +779,19 @@ bool dump_cell_expr(std::ostream &f, std::string indent, RTLIL::Cell *cell)
 		return true;
 	}
 
+	if (cell->type == "$lut")
+	{
+		f << stringf("%s" "assign ", indent.c_str());
+		dump_sigspec(f, cell->getPort("\\Y"));
+		f << stringf(" = ");
+		dump_const(f, cell->parameters.at("\\LUT"));
+		f << stringf(" >> ");
+		dump_attributes(f, "", cell->attributes, ' ');
+		dump_sigspec(f, cell->getPort("\\A"));
+		f << stringf(";\n");
+		return true;
+	}
+
 	if (cell->type == "$dffsr")
 	{
 		SigSpec sig_clk = cell->getPort("\\CLK");
@@ -897,12 +910,49 @@ bool dump_cell_expr(std::ostream &f, std::string indent, RTLIL::Cell *cell)
 		return true;
 	}
 
+	if (cell->type == "$dlatch")
+	{
+		RTLIL::SigSpec sig_en;
+		bool pol_en = false;
+
+		sig_en = cell->getPort("\\EN");
+		pol_en = cell->parameters["\\EN_POLARITY"].as_bool();
+
+		std::string reg_name = cellname(cell);
+		bool out_is_reg_wire = is_reg_wire(cell->getPort("\\Q"), reg_name);
+
+		if (!out_is_reg_wire) {
+			f << stringf("%s" "reg [%d:0] %s", indent.c_str(), cell->parameters["\\WIDTH"].as_int()-1, reg_name.c_str());
+			dump_reg_init(f, cell->getPort("\\Q"));
+			f << ";\n";
+		}
+
+		f << stringf("%s" "always @*\n", indent.c_str());
+
+		f << stringf("%s" "  if (%s", indent.c_str(), pol_en ? "" : "!");
+		dump_sigspec(f, sig_en);
+		f << stringf(")\n");
+
+		f << stringf("%s" "    %s = ", indent.c_str(), reg_name.c_str());
+		dump_cell_expr_port(f, cell, "D", false);
+		f << stringf(";\n");
+
+		if (!out_is_reg_wire) {
+			f << stringf("%s" "assign ", indent.c_str());
+			dump_sigspec(f, cell->getPort("\\Q"));
+			f << stringf(" = %s;\n", reg_name.c_str());
+		}
+
+		return true;
+	}
+
 	if (cell->type == "$mem")
 	{
 		RTLIL::IdString memid = cell->parameters["\\MEMID"].decode_string();
 		std::string mem_id = id(cell->parameters["\\MEMID"].decode_string());
 		int abits = cell->parameters["\\ABITS"].as_int();
 		int size = cell->parameters["\\SIZE"].as_int();
+		int offset = cell->parameters["\\OFFSET"].as_int();
 		int width = cell->parameters["\\WIDTH"].as_int();
 		bool use_init = !(RTLIL::SigSpec(cell->parameters["\\INIT"]).is_fully_undef());
 
@@ -911,7 +961,7 @@ bool dump_cell_expr(std::ostream &f, std::string indent, RTLIL::Cell *cell)
 		//  initial begin
 		//    memid[0] = ...
 		//  end
-		f << stringf("%s" "reg [%d:%d] %s [%d:%d];\n", indent.c_str(), width-1, 0, mem_id.c_str(), size-1, 0);
+		f << stringf("%s" "reg [%d:%d] %s [%d:%d];\n", indent.c_str(), width-1, 0, mem_id.c_str(), size+offset-1, offset);
 		if (use_init)
 		{
 			f << stringf("%s" "initial begin\n", indent.c_str());
@@ -1446,7 +1496,7 @@ void dump_module(std::ostream &f, std::string indent, RTLIL::Module *module)
 
 struct VerilogBackend : public Backend {
 	VerilogBackend() : Backend("verilog", "write design to Verilog file") { }
-	virtual void help()
+	void help() YS_OVERRIDE
 	{
 		//   |---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|---v---|
 		log("\n");
@@ -1474,7 +1524,7 @@ struct VerilogBackend : public Backend {
 		log("\n");
 		log("    -nodec\n");
 		log("        32-bit constant values are by default dumped as decimal numbers,\n");
-		log("        not bit pattern. This option decativates this feature and instead\n");
+		log("        not bit pattern. This option deactivates this feature and instead\n");
 		log("        will write out all constants in binary.\n");
 		log("\n");
 		log("    -decimal\n");
@@ -1482,13 +1532,13 @@ struct VerilogBackend : public Backend {
 		log("\n");
 		log("    -nohex\n");
 		log("        constant values that are compatible with hex output are usually\n");
-		log("        dumped as hex values. This option decativates this feature and\n");
+		log("        dumped as hex values. This option deactivates this feature and\n");
 		log("        instead will write out all constants in binary.\n");
 		log("\n");
 		log("    -nostr\n");
 		log("        Parameters and attributes that are specified as strings in the\n");
 		log("        original input will be output as strings by this back-end. This\n");
-		log("        decativates this feature and instead will write string constants\n");
+		log("        deactivates this feature and instead will write string constants\n");
 		log("        as binary numbers.\n");
 		log("\n");
 		log("    -defparam\n");
@@ -1514,7 +1564,7 @@ struct VerilogBackend : public Backend {
 		log("this command is called on a design with RTLIL processes.\n");
 		log("\n");
 	}
-	virtual void execute(std::ostream *&f, std::string filename, std::vector<std::string> args, RTLIL::Design *design)
+	void execute(std::ostream *&f, std::string filename, std::vector<std::string> args, RTLIL::Design *design) YS_OVERRIDE
 	{
 		log_header(design, "Executing Verilog backend.\n");
 
@@ -1537,6 +1587,8 @@ struct VerilogBackend : public Backend {
 
 		reg_ct.insert("$dff");
 		reg_ct.insert("$adff");
+		reg_ct.insert("$dffe");
+		reg_ct.insert("$dlatch");
 
 		reg_ct.insert("$_DFF_N_");
 		reg_ct.insert("$_DFF_P_");
